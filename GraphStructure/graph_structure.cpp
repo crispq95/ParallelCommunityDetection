@@ -1,10 +1,4 @@
 
-// DistributedGraph::DistributedGraph(){
-
-// }
-
-// DistributedGraph::~DistributedGraph(){}; 
-
 void DistributedGraph::create_graph_from_METIS(std::string filename, int rank, int world_size){
     std::ifstream myFile(filename);
     std::string line, vtx, edgs; 
