@@ -1,8 +1,19 @@
 
 #include <mpi.h> 
-#include <vector.h>
+#include <stdio.h>
+#include <iostream>
+#include <fstream>
+#include <stdlib.h>
+#include <math.h> 
+#include <iomanip>
+#include <vector>
+#include <unordered_map>
 
-typedef unsigned long int T;
+// #include "define.h"
+// #include "comm.h"
+
+typedef unsigned int T; // unsigned long int ? 
+typedef long int LABEL_T;
 
 struct Edge {
     T target; 
@@ -12,33 +23,59 @@ struct Edge {
 struct Node{
     T id;
     T node_weight;
-    T current_label; 
+    LABEL_T current_label; 
     // bool active; // maybe we can mark unactive nodes so they dont update anymore 
 };
 
-struct Node : LocalNode{
-    T next_label; 
+struct LocalNode : Node {
+    LABEL_T next_label; 
     std::vector<Edge> *edges; 
     bool is_boundary;
 };
 
-struct Node : GhostNode{
+struct GhostNode : Node {
     int pe_id; // id of the PE it belongs to 
 }; 
 
+
 // define a class to handle the graph
-class DistributedGraph(){
-    DistributedGraph();
-    ~DistributedGraph();
+class DistributedGraph{
+    private: 
+        std::unordered_map<T,T> ghost_global_ids; 
+
+        T no_local_vtx, no_total_edg, no_total_vtx;
+        T vtx_begin, vtx_end; 
+
+        // CommunicationHandler commH; 
     public: 
-        std::vector<LocalNode> local_nodes; 
-        std::vector<GhostNode> ghost_nodes; 
+        // check where to place this 
+        std::vector<LocalNode> *local_nodes; 
+        std::vector<GhostNode> *ghost_nodes; 
 
-        T no_local_vtx; 
+        DistributedGraph();
+        ~DistributedGraph();
 
-        void set_local_vtx( T no_vtx );
-        T get_local_vtx( return no_local_vtx; ); 
+        // getters and setters <- no hacen falta para esas var ?
+        void set_local_vtx( T vtx ){ no_local_vtx = vtx; };
+        void get_total_vtx( T vtx ){ no_total_vtx = vtx; };
+        void set_total_edges( T edges ){ no_total_edg = edges; };
+        void set_next_label( LABEL_T new_label, T n_id ){ (*local_nodes)[n_id].next_label = new_label; };
+
+        T get_local_vtx(){      return no_local_vtx; }; 
+        T get_total_vtx(){      return no_total_vtx; }; 
+        T get_total_edges(){    return no_total_edg; }; 
+        T get_vtx_begin(){      return vtx_begin;}; 
+        T get_vtx_end(){        return vtx_end;  }; 
+
+        // methods to transform IDs from local <-> global  
+        T from_global_to_local(T global_id);
+        T from_local_to_global(T local_id); 
+        T from_ghost_global_to_index(T ghost_global_id);
+        T from_local_ghost_to_index(T local_ghost_index);
 
         // class methods
-        void create_graph_from_METIS();
+        void create_graph_from_METIS(std::string filename);
+        void get_neighbors(T local_id, std::vector<Edge>* neighbors); 
+        bool is_ghost( T n_index ); 
+
 };
