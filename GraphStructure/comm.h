@@ -36,15 +36,14 @@ struct nodePackage{
 
 class CommunicationHandler{
     int my_rank, world_size;
-    // std::vector<int> neighborPEs; 
     std::unordered_map<T, bool> to_be_sent; 
-    std::unordered_map<int, int> neighborPEs;
+    std::unordered_map<int, int> neighborPEs;   // key : Neighbor process RANK  |  value : local id for s/rcv buffers 
     std::vector<MPI_Request> recv_request;
     int no_of_neighbor_PEs;
 
-    std::vector<std::vector<nodePackage>> *send_buffer; // , *rcv_buffer; //, *is_sent;
+    std::vector<std::vector<nodePackage>> *send_buffer;
     std::vector<std::vector<T>> s_buffer, rcv_buffer; 
-    std::vector<int> n_ranks; 
+    // std::vector<int> n_ranks; 
 
     public: 
         // init n

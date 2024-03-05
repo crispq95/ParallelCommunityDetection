@@ -130,7 +130,11 @@ void DistributedGraph::create_graph_from_METIS(std::string filename){
                     // gn.current_label = e.target; // conserva su label original 
                     gn.current_label = stoul(word);
                     // gn.pe_id = ceil((double)(stoul(word))/(double)my_part)-1;    // calculate pe id 
-                    gn.pe_id = floor((double)(stoul(word))/(double)my_part) >= world_size ? (world_size-1) : floor((double)(stoul(word))/(double)my_part) ;    // calculate pe id 
+                    unsigned int rank_neigh_PE = floor((double)(stoul(word))/(double)my_part) >= world_size ? (world_size-1) : floor((double)(stoul(word))/(double)my_part);
+              
+                    // if this rank is the local index instead of the rank everything is easier ?
+                        // other than that, need a conversion from global rank to local rank index 
+                    gn.pe_id =  rank_neigh_PE;   // calculate pe id 
 
 
                     // if(rank == 0)
@@ -187,13 +191,10 @@ void DistributedGraph::create_graph_from_METIS(std::string filename){
 
 /* Returns true if a vtx id belongs to a ghost */
 bool DistributedGraph::is_ghost( T n_index ){
-    // int world_size, rank;
-    // MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-    // MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-
-    // if(rank == 0)
-    //     std::cout << vtx_begin <<  " <= " <<  n_index << " < " << vtx_end << std::endl; 
     return ( n_index < no_local_vtx ) ?  false : true ;
-    //( vtx_begin <= n_index < vtx_end ) ? false : true ;
+}
+
+void DistributedGraph::update_labels(){
+    for( T i = 0 ; i < (*local_nodes).size() ; i++ )
+        (*local_nodes)[i].current_label = (*local_nodes)[i].next_label; 
 }

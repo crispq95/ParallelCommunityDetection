@@ -88,6 +88,7 @@ class DistributedGraph{
         void create_graph_from_METIS(std::string filename);
         const std::vector<Edge>* get_neighbors(T local_id); 
         bool is_ghost( T n_index ); 
+        void update_labels(); 
 
 };
 
