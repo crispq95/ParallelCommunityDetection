@@ -1,3 +1,5 @@
+#ifndef GRAPH_STRUCTURE_H 
+#define GRAPH_STRUCTURE_H
 
 #include <mpi.h> 
 #include <stdio.h>
@@ -12,7 +14,7 @@
 // #include "define.h"
 // #include "comm.h"
 
-typedef unsigned int T; // unsigned long int ? 
+typedef unsigned long int T; // unsigned long int ? 
 typedef long int LABEL_T;
 
 struct Edge {
@@ -41,7 +43,6 @@ struct GhostNode : Node {
 // define a class to handle the graph
 class DistributedGraph{
     private: 
-        std::unordered_map<T,T> ghost_global_ids; 
 
         T no_local_vtx, no_total_edg, no_total_vtx;
         T vtx_begin, vtx_end; 
@@ -51,15 +52,23 @@ class DistributedGraph{
         // check where to place this 
         std::vector<LocalNode> *local_nodes; 
         std::vector<GhostNode> *ghost_nodes; 
+        std::unordered_map<T,T> ghost_global_ids; 
 
         DistributedGraph();
         ~DistributedGraph();
 
         // getters and setters <- no hacen falta para esas var ?
         void set_local_vtx( T vtx ){ no_local_vtx = vtx; };
-        void get_total_vtx( T vtx ){ no_total_vtx = vtx; };
+        void set_total_vtx( T vtx ){ no_total_vtx = vtx; };
         void set_total_edges( T edges ){ no_total_edg = edges; };
-        void set_next_label( LABEL_T new_label, T n_id ){ (*local_nodes)[n_id].next_label = new_label; };
+        void set_next_label( LABEL_T new_label, T n_id ){ 
+            // int rank; 
+            // MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+            // if(rank == 1)
+            //     std::cout << "Changing label to local vtx " << (*local_nodes)[n_id].id << " to " << new_label << std::endl; 
+            (*local_nodes)[n_id].next_label = new_label; 
+        
+        };
 
         T get_local_vtx(){      return no_local_vtx; }; 
         T get_total_vtx(){      return no_total_vtx; }; 
@@ -72,10 +81,14 @@ class DistributedGraph{
         T from_local_to_global(T local_id); 
         T from_ghost_global_to_index(T ghost_global_id);
         T from_local_ghost_to_index(T local_ghost_index);
+        LABEL_T get_label(int index) { return (*local_nodes)[index].current_label; };
+        T get_local_vtx_id(int index) { return (*local_nodes)[index].id; };
 
         // class methods
         void create_graph_from_METIS(std::string filename);
-        void get_neighbors(T local_id, std::vector<Edge>* neighbors); 
+        const std::vector<Edge>* get_neighbors(T local_id); 
         bool is_ghost( T n_index ); 
 
 };
+
+#endif 
