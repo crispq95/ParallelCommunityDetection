@@ -143,7 +143,7 @@ int main(int argc, char** argv) {
 
     // std::string filename = "/home/crispq/label_propagation/ParallelCommunityDetection/GraphExamples/0_karate_club_metis.txt";
     // std::string filename = "/home/crispq/parallelCommunityDetection/GraphExamples/small_test.txt";
-    std::string filename = "/home/crispq/parallelCommunityDetection/GraphExamples/0_karate_club_metis.txt";
+    std::string filename = "/home/crispq/label_propagation/ParallelCommunityDetection/GraphExamples/0_karate_club_metis.txt";
 
     /* Load graph from file & Construct graph into CSR format */
     // Each process loads its portion of the vertices of the graph 
@@ -289,10 +289,15 @@ int main(int argc, char** argv) {
             std::unordered_map<T,T> label_cnt;
             std::vector<T> max_labels; 
             LABEL_T max_label_value = 0;
+            std::unordered_set<int> boundary_neighbor_PEs;
 
             // if(rank == 1)
             //     if(local_vtx.id == 1) // vtx 8 
             //         std::cout << "I'm vtx 4 at step " << nsteps << " printing the label of my neighbors "; 
+
+            // if(local_vtx.is_boundary)
+            //     boundary_neighbor_PEs.resize(cm.no_neighbor_PEs)
+
 
             // for all neighbors of the local vtx 
             for(auto neigh : (*local_vtx.edges)){
@@ -304,6 +309,12 @@ int main(int argc, char** argv) {
                 }else{
                     int local_idx =  graph.from_local_ghost_to_index(n_idx);
                     n_label = (*graph.ghost_nodes)[local_idx].current_label; 
+
+
+                    // if it IS A GHOST -> can add the pe rank to list to send ? 
+                        // if we already have all ranks no need to look further 
+                    // if(boundary_neighbor_PEs.find() != boundary_neighbor_PEs.end())
+                    //     boundary_neighbor_PEs.insert();
                 }
 
                 if(rank == 1)
@@ -369,7 +380,7 @@ int main(int argc, char** argv) {
                                           // rcv any ghost sent by other PEs 
     /* HOW TO ? */
     // each PE = slice of the cake -> write in order in file 
-    std::string output_filename = "/home/crispq/parallelCommunityDetection/output_small_test.txt";
+    std::string output_filename = "/home/crispq/label_propagation/ParallelCommunityDetection/output_small_test.txt";
     std::ofstream myOutputFile;
 
     int current_writer = 0; 

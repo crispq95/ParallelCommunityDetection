@@ -100,7 +100,6 @@ void DistributedGraph::create_graph_from_METIS(std::string filename){
         // ln.current_label = ln.id;  // Labeled to the id of the vertex
         ln.current_label = total;
         ln.next_label = -1;
-        ln.is_boundary = false; 
         ln.edges = new std::vector<Edge>(); // maybe store memory for edges 
 
 		// iterate over the words on the file 
@@ -194,7 +193,28 @@ bool DistributedGraph::is_ghost( T n_index ){
     return ( n_index < no_local_vtx ) ?  false : true ;
 }
 
-void DistributedGraph::update_labels(){
+/* Updates local labels from current to next label */
+void DistributedGraph::update_local_labels(){
     for( T i = 0 ; i < (*local_nodes).size() ; i++ )
         (*local_nodes)[i].current_label = (*local_nodes)[i].next_label; 
+}
+
+/* Updates the information on the local ghosts recieved from other processes */
+void DistributedGraph::update_local_ghosts(CommunicationHandler *cm){
+    // for all the elements on the recv data
+    // for( int i=0 ; i < cm->recv_buffer.size() ; i+=2 ){
+    //     // get the local_id of the ghost
+    //     T local_g_id = ghost_global_ids[cm->recv_buffer[i]];
+
+    //     // get local_index 
+    //     T local_g_idx = from_local_ghost_to_index(local_g_id); 
+
+    //     // get label of the ghost
+    //     LABEL_T g_label = cm->recv_buffer[a+1];
+
+    //     // update label 
+    //     // std::cout << "Global id : " << temp_rcv_data[a] << "[LOCAL: " << g->ghost_global_ids[temp_rcv_data[a]] << "] , label " << temp_rcv_data[a+1] << " changes from " << (*g->ghost_nodes)[local_g_idx].current_label << std::endl; 
+    //     ghost_nodes[local_g_id].current_label = g_label;
+    // }
+    // cm->clearBuffers();
 }

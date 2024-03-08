@@ -122,14 +122,8 @@ void CommunicationHandler::send_recv_data(DistributedGraph* g){
         unsigned long int msg_size = s_buffer[pe_idx].size();
         MPI_Isend(&msg_size, 1, MPI_UNSIGNED_LONG, pe_rank, 11, MPI_COMM_WORLD, &request); // tag of nº = 11 
 
-        // send the data iself 
-        std::vector<T> temp_data; // array needs to be flattened for send to work ? 
-        for( int i = 0; i< s_buffer[pe_idx].size(); i++){
-            temp_data.push_back(s_buffer[pe_idx][i]);
-        }
-
-        if(temp_data.size() != 0){
-            MPI_Isend(&temp_data[0], temp_data.size(), MPI_UNSIGNED_LONG, pe_rank, 21, MPI_COMM_WORLD, &request); // tag of nº = 21 
+        if(msg_size != 0){
+            MPI_Isend(&s_buffer[pe_idx][0], msg_size, MPI_UNSIGNED_LONG, pe_rank, 21, MPI_COMM_WORLD, &request); // tag of nº = 21 
         }
     }
 
@@ -150,6 +144,7 @@ void CommunicationHandler::send_recv_data(DistributedGraph* g){
         // rcv the data from process pe_rank 
         if(msg_size != 0){
             // std::cout << "Aiming to recv [" << msg_size << "] on " << my_rank << " from " << pe_rank << std::endl; 
+            // MPI_Recv(&temp_rcv_data[0], msg_size, MPI_UNSIGNED_LONG, pe_rank, 21, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             MPI_Recv(&temp_rcv_data[0], msg_size, MPI_UNSIGNED_LONG, pe_rank, 21, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
             // std::cout << "Temp data on " << my_rank << " from : " << pe_idx << std::endl;  
@@ -170,25 +165,4 @@ void CommunicationHandler::send_recv_data(DistributedGraph* g){
         }
     }
     clearBuffers();
-}
-
-void CommunicationHandler::update_data(DistributedGraph *g){
-    // how to update the data ? 
-    // we recv info at rcv_buffer so 
-    // for( int i = 0; i < no_of_neighbor_PEs ; i++ ){
-    //     int pe_id = neighborPEs[i]; 
-    //     long int cnt = 0; 
-    //     // for each element rcvd from a rank 
-    //     for( auto n : rcv_buffer[pe_id] ){
-    //         // get the global id -> turn into local index 
-    //         T local_indx = g->from_ghost_global_to_index(n[cnt]);
-
-    //         // update this vtx 
-    //         (*g->ghost_nodes)[local_indx].current_label = n[cnt+1];
-    //         cnt+=2; 
-    //     }
-    // }
-
-    // restart buffers 
-    // this->clearBuffers(); 
 }

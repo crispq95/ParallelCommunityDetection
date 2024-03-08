@@ -11,34 +11,7 @@
 #include <vector>
 #include <unordered_map>
 
-// #include "define.h"
-// #include "comm.h"
-
-typedef unsigned long int T; // unsigned long int ? 
-typedef long int LABEL_T;
-
-struct Edge {
-    T target; 
-    T edge_weight;
-};
-
-struct Node{
-    T id;
-    T node_weight;
-    LABEL_T current_label; 
-    // bool active; // maybe we can mark unactive nodes so they dont update anymore 
-};
-
-struct LocalNode : Node {
-    LABEL_T next_label; 
-    std::vector<Edge> *edges; 
-    bool is_boundary;
-};
-
-struct GhostNode : Node {
-    int pe_id; // id of the PE it belongs to 
-}; 
-
+#include "define.h"
 
 // define a class to handle the graph
 class DistributedGraph{
@@ -88,7 +61,8 @@ class DistributedGraph{
         void create_graph_from_METIS(std::string filename);
         const std::vector<Edge>* get_neighbors(T local_id); 
         bool is_ghost( T n_index ); 
-        void update_labels(); 
+        void update_local_labels(); 
+        void update_local_ghosts();
 
 };
 
