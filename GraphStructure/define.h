@@ -2,8 +2,16 @@
 #define DEFINE_H
 
 #include <mpi.h> 
+#include <stdio.h>
+#include <fstream>
+#include <stdlib.h>
+#include <math.h> 
 #include <iostream>
+#include <iomanip>  
 #include <ostream> 
+#include <vector>
+#include <unordered_map>
+#include <algorithm>
 
 typedef unsigned long int T; // unsigned long int ? 
 typedef long int LABEL_T;

@@ -1,5 +1,4 @@
 #include "comm.h"
-// // Handle the required Information for communications 
 
 CommunicationHandler::CommunicationHandler(){}
 CommunicationHandler::~CommunicationHandler(){}
@@ -11,56 +10,15 @@ void CommunicationHandler::init_communications(std::vector<GhostNode> *ghost_nod
     T g_idx = 0; 
     no_of_neighbor_PEs = 0; 
 
-    // const int test = 1 ; 
-    // if(std::find(neighborPEs.begin(), neighborPEs.end(), test) != neighborPEs.end()){
-    //     std::cout << "Found : " <<  std::endl; 
-    // }
-
-    // std::cout << " I have " << (*ghost_nodes).size() << " ghosts" << std::endl; 
     // get the neighbor PEs
     while ( g_idx < (*ghost_nodes).size() && no_of_neighbor_PEs < world_size){
         if(neighborPEs.find((*ghost_nodes)[g_idx].pe_id) == neighborPEs.end()){
             neighborPEs[(*ghost_nodes)[g_idx].pe_id] = no_of_neighbor_PEs;
-            // n_ranks.push_back((*ghost_nodes)[g_idx].pe_id); 
             no_of_neighbor_PEs++; 
-            
-            // if(my_rank == 1)
-            //     std::cout << (*ghost_nodes)[g_idx].pe_id << " - " << neighborPEs[(*ghost_nodes)[g_idx].pe_id] << " " << std::endl; 
         }
-       
-        // if(std::find(neighborPEs.begin(), neighborPEs.end(), (*ghost_nodes)[g_idx].pe_id) == neighborPEs.end()){
-        //     neighborPEs.push_back((*ghost_nodes)[g_idx].pe_id);
-        //     no_of_neighbor_PEs++;
-
-        //     // std::cout << "MIAU : " << neighborPEs[(*ghost_nodes)[g_idx].pe_id] << std::endl;
-        // }
-        // else{
-        //     // std::cout << "HOLA : " << neighborPEs[(*ghost_nodes)[g_idx].pe_id] << std::endl;
-        // }
         g_idx++; 
     }
-
-    
-
-    // if(my_rank == 0){
-    //     std::cout << "Found " << no_of_neighbor_PEs << " neighbors." <<  std::endl; 
-    //     for( auto a : neighborPEs){
-    //         std::cout << a.first << " -> " << a.second << std::endl; 
-    //     }
-    // }
-
     s_buffer.resize(no_of_neighbor_PEs); 
-    rcv_buffer.resize(no_of_neighbor_PEs); 
-
-    // if(my_rank == 0){
-    //     std::cout << "Found " << no_of_neighbor_PEs << " neighbor PEs." << std::endl; 
-
-    //     for(auto i : neighborPEs){
-    //         std::cout << i.first << " - " << i.second << " " << std::endl; 
-    //     }
-    // }
-
-
 }
 
 void CommunicationHandler::clearBuffers()
@@ -134,33 +92,19 @@ void CommunicationHandler::send_recv_data(DistributedGraph* g){
         // get how many ghosts I'm recvng 
         MPI_Recv(&msg_size, 1, MPI_UNSIGNED_LONG, pe_rank, 11, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-        // get the data itself 
-        // rcv_buffer[i].resize(msg_size);
-
         std::vector<T> temp_rcv_data;
         temp_rcv_data.resize(msg_size); 
 
-        // std::cout << "I'm on " << my_rank << " and rcv " << msg_size/2 << " vertices from " << pe_rank << std::endl; 
         // rcv the data from process pe_rank 
         if(msg_size != 0){
-            // std::cout << "Aiming to recv [" << msg_size << "] on " << my_rank << " from " << pe_rank << std::endl; 
-            // MPI_Recv(&temp_rcv_data[0], msg_size, MPI_UNSIGNED_LONG, pe_rank, 21, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             MPI_Recv(&temp_rcv_data[0], msg_size, MPI_UNSIGNED_LONG, pe_rank, 21, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-            // std::cout << "Temp data on " << my_rank << " from : " << pe_idx << std::endl;  
             for( int a=0 ; a < temp_rcv_data.size() ; a+=2 ){
-                // get local_id 
-                T local_g_id = g->ghost_global_ids[temp_rcv_data[a]];
-
-                // get local_index 
-                T local_g_idx = g->from_local_ghost_to_index(local_g_id); 
-
-                // get label 
+                T local_g_indx = g->ghost_global_ids[temp_rcv_data[a]];
                 LABEL_T g_label = temp_rcv_data[a+1];
 
                 // update label 
-                // std::cout << "Global id : " << temp_rcv_data[a] << "[LOCAL: " << g->ghost_global_ids[temp_rcv_data[a]] << "] , label " << temp_rcv_data[a+1] << " changes from " << (*g->ghost_nodes)[local_g_idx].current_label << std::endl; 
-                (*g->ghost_nodes)[local_g_id].current_label = g_label;
+                (*g->ghost_nodes)[local_g_indx].current_label = g_label;
             }
         }
     }

@@ -1,22 +1,11 @@
 #ifndef GRAPH_STRUCTURE_H 
 #define GRAPH_STRUCTURE_H
 
-#include <mpi.h> 
-#include <stdio.h>
-#include <iostream>
-#include <fstream>
-#include <stdlib.h>
-#include <math.h> 
-#include <iomanip>
-#include <vector>
-#include <unordered_map>
-
 #include "define.h"
 
 // define a class to handle the graph
 class DistributedGraph{
     private: 
-
         T no_local_vtx, no_total_edg, no_total_vtx;
         T vtx_begin, vtx_end; 
 
@@ -34,14 +23,7 @@ class DistributedGraph{
         void set_local_vtx( T vtx ){ no_local_vtx = vtx; };
         void set_total_vtx( T vtx ){ no_total_vtx = vtx; };
         void set_total_edges( T edges ){ no_total_edg = edges; };
-        void set_next_label( LABEL_T new_label, T n_id ){ 
-            // int rank; 
-            // MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-            // if(rank == 1)
-            //     std::cout << "Changing label to local vtx " << (*local_nodes)[n_id].id << " to " << new_label << std::endl; 
-            (*local_nodes)[n_id].next_label = new_label; 
-        
-        };
+        void set_next_label( LABEL_T new_label, T n_id ){ (*local_nodes)[n_id].next_label = new_label; };
 
         T get_local_vtx(){      return no_local_vtx; }; 
         T get_total_vtx(){      return no_total_vtx; }; 
@@ -62,8 +44,6 @@ class DistributedGraph{
         const std::vector<Edge>* get_neighbors(T local_id); 
         bool is_ghost( T n_index ); 
         void update_local_labels(); 
-        void update_local_ghosts();
-
 };
 
 #endif 

@@ -1,14 +1,8 @@
 #ifndef COMM_H
 #define COMM_h
 
-// #include "define.h"
-// #include "graph_structure.h"
-#include <vector>
-#include <unordered_map>
-
 #include "graph_structure.h"
 #include "define.h"
-#include <algorithm>
 
 /* Class to handle the communications of the distributed graph */
 class CommunicationHandler{
@@ -36,7 +30,5 @@ class CommunicationHandler{
         void addToSend(DistributedGraph* g, LocalNode node); 
         void clearBuffers();
         void send_recv_data(DistributedGraph* g);
-        // void update_data(DistributedGraph *g);
-        // void recvData(); 
 };
 #endif
