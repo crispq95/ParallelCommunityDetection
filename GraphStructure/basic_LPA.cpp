@@ -6,14 +6,14 @@
 #include <iomanip>
 #include <vector>
 
-#include "comm.h"
-#include "graph_structure.h"
+#include "CommunicationHandler.h"
+#include "DistributedGraph.h"
 #include <unordered_set>
 
 void run_LPA(DistributedGraph *graph, CommunicationHandler *cm){
     int nsteps = 0; 
-    while(nsteps < 20){
-        for(auto local_vtx : (*graph->local_nodes)){
+    while(nsteps < 12){
+        for(auto local_vtx : (*graph->get_local_vertices())){
             // init label counter & maximal labels 
             std::unordered_map<T,T> label_cnt;
             std::vector<T> max_labels; 
@@ -26,10 +26,14 @@ void run_LPA(DistributedGraph *graph, CommunicationHandler *cm){
                 LABEL_T n_label = -1; 
                 
                 if(n_idx < graph->get_local_vtx()){
-                    n_label = (*graph->local_nodes)[n_idx].current_label; 
+                    n_label = (*graph->get_local_vertices())[n_idx].current_label; 
                 }else{
                     int local_idx =  graph->from_local_ghost_to_index(n_idx);
-                    n_label = (*graph->ghost_nodes)[local_idx].current_label; 
+                    n_label = (*graph->get_ghost_vertices())[local_idx].current_label; 
+                    int ghost_pe_id = graph->get_ghost_vertices()->at(local_idx).pe_id;
+
+                    if(boundary_neighbor_PEs.find(ghost_pe_id) == boundary_neighbor_PEs.end())
+                        boundary_neighbor_PEs.insert(ghost_pe_id); 
                 }
 
                 /* add value to label counter */
@@ -59,7 +63,8 @@ void run_LPA(DistributedGraph *graph, CommunicationHandler *cm){
                 if(max_labels[rng_label] != local_vtx.current_label){
                     graph->set_next_label(max_labels[rng_label], local_vtx.id);  // assign new label to local vtx 
                     // append changed vtx to queue to be sent ? 
-                    cm->addToSend(graph, local_vtx); 
+                    if(local_vtx.is_boundary)
+                        cm->add_to_send(&boundary_neighbor_PEs, local_vtx.id, max_labels[rng_label]); 
                 }
             }
         }
@@ -86,7 +91,7 @@ void write_output(std::string output_filename, DistributedGraph * graph, int ran
                 myOutputFile.open(output_filename, std::ios::app);
 
             // write into the output file its portion of the graph + labels 
-            for( auto local_vtx : (*graph->local_nodes) ){
+            for( auto local_vtx : (*graph->get_local_vertices()) ){
                 T global_id = graph->from_local_to_global(local_vtx.id); 
                 myOutputFile << global_id << " " << local_vtx.current_label << std::endl; 
             }
@@ -134,7 +139,7 @@ int main(int argc, char** argv) {
     graph.create_graph_from_METIS(filename);
     
     /* Init communication structure */
-    cm.init_communications(graph.ghost_nodes); 
+    cm.init_communications(graph.get_ghost_vertices()); 
 
     // RUN LPA 
     run_LPA(&graph, &cm);

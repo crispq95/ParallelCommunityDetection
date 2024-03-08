@@ -1,15 +1,15 @@
-#include "graph_structure.h"
+#include "DistributedGraph.h"
 
 DistributedGraph::DistributedGraph(){
-    local_nodes = new std::vector<LocalNode>();
-    ghost_nodes = new std::vector<GhostNode>(); 
+    local_vertices = new std::vector<LocalNode>();
+    ghost_vertices = new std::vector<GhostNode>(); 
 }
 
 DistributedGraph::~DistributedGraph(){
-    for(auto n : (*local_nodes))
+    for(auto n : (*local_vertices))
         delete n.edges;
-    delete local_nodes;
-    delete ghost_nodes;
+    delete local_vertices;
+    delete ghost_vertices;
 }
 
 /* This function only works if global_id belongs to this rank */
@@ -34,7 +34,7 @@ T DistributedGraph::from_local_to_global(T local_id){
 
 const std::vector<Edge>* DistributedGraph::get_neighbors(T local_id){
     if( vtx_begin <= local_id < vtx_end){
-        return (*local_nodes)[local_id].edges; 
+        return (*local_vertices)[local_id].edges; 
     }
     return NULL;
 }
@@ -62,7 +62,7 @@ void DistributedGraph::create_graph_from_METIS(std::string filename){
 	T remainder = no_total_vtx % world_size;
 
     no_local_vtx = ((rank == world_size-1) ? my_part+remainder : my_part); //: (remainder <= rank) ? my_part : my_part+1
-    local_nodes->reserve(no_local_vtx); 
+    local_vertices->reserve(no_local_vtx); 
 
     unsigned long int total = 0, n_boundary = 0, cnt=0;
 
@@ -74,14 +74,16 @@ void DistributedGraph::create_graph_from_METIS(std::string filename){
     
 	// iterate over the rest of the file and create remaining CSR vectors 
     while (std::getline(myFile, line)) {
-		std::istringstream iss(line);
-		std::string word;
 		if(total<vtx_begin){ // use a better way to skip lines ? 
 			total++;
             continue;
-		}if(total>=vtx_end)
+		}
+        if(total>=vtx_end)
 			break; 
         
+		std::istringstream iss(line);
+		std::string word;
+
         LocalNode ln; 
         ln.is_boundary = false; 
 
@@ -90,34 +92,36 @@ void DistributedGraph::create_graph_from_METIS(std::string filename){
         ln.current_label = total;
         ln.next_label = -1;
         ln.edges = new std::vector<Edge>(); // maybe store memory for edges 
+        (*ln.edges).reserve(ceil(iss.rdbuf()->in_avail()/2));
 
 		// iterate over the words on the file 
 		// the rest are its neighbours 
 		while (iss >> word) {
             Edge e; 
-            e.target = from_global_to_local(stoul(word)); 
+            T n_global_id = stoul(word);
+            e.target = from_global_to_local(n_global_id); 
             e.edge_weight = 1; // here we need to set weight if available 
                         
             // check if current node is boundary (have neighbors outside)
-            if( stoul(word) < vtx_begin || stoul(word) >= vtx_end ){
+            if( n_global_id < vtx_begin || n_global_id >= vtx_end ){
                 ln.is_boundary = true; 
-                T ghost_id = ghost_global_ids.size()+(no_local_vtx);
-                
-                if (ghost_global_ids.find(stoul(word)) != ghost_global_ids.end()){
-                    // get its id and set the neighbor of current node 
-                    ghost_id = (*ghost_nodes)[ghost_global_ids[stoul(word)]].id;
-                }else{
+                T ghost_id; // = ghost_global_ids.size()+(no_local_vtx);
+                auto it = ghost_global_ids.find(n_global_id);
+
+                if (it != ghost_global_ids.end()) {
+                    // Neighbor already exists in ghost vertices
+                    ghost_id = (*ghost_vertices)[it->second].id;
+                } else {
+                    // Create a new ghost 
+                    ghost_id = ghost_global_ids.size()+no_local_vtx;
+                    
                     GhostNode gn; 
                     gn.id = ghost_id;
                     gn.node_weight = 1; // for now, gotta change this 
-                    gn.current_label = stoul(word);
-                    unsigned int rank_neigh_PE = floor((double)(stoul(word))/(double)my_part) >= world_size ? (world_size-1) : floor((double)(stoul(word))/(double)my_part);
-              
-                    // if this rank is the local index instead of the rank everything is easier ?
-                        // other than that, need a conversion from global rank to local rank index 
-                    gn.pe_id =  rank_neigh_PE;   // calculate pe id 
-                    ghost_global_ids[stoul(word)] = ghost_index;
-                    ghost_nodes->push_back(gn);
+                    gn.current_label = n_global_id;
+                    gn.pe_id =  std::min(static_cast<unsigned int>(floor(static_cast<double>(n_global_id) / my_part)), static_cast<unsigned int>(world_size - 1));
+                    ghost_global_ids[n_global_id] = ghost_index;
+                    ghost_vertices->push_back(gn);
                     ghost_index++; 
                 }
                 e.target = ghost_id; 
@@ -125,7 +129,7 @@ void DistributedGraph::create_graph_from_METIS(std::string filename){
             ln.edges->push_back(e);
 		}
 
-        local_nodes->push_back(ln); 
+        local_vertices->push_back(ln); 
         cnt++; 
         total++;
     }
@@ -140,6 +144,6 @@ bool DistributedGraph::is_ghost( T n_index ){
 
 /* Updates local labels from current to next label */
 void DistributedGraph::update_local_labels(){
-    for( T i = 0 ; i < (*local_nodes).size() ; i++ )
-        (*local_nodes)[i].current_label = (*local_nodes)[i].next_label; 
+    for( T i = 0 ; i < (*local_vertices).size() ; i++ )
+        (*local_vertices)[i].current_label = (*local_vertices)[i].next_label; 
 }

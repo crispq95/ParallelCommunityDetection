@@ -1,7 +1,7 @@
-#ifndef COMM_H
-#define COMM_h
+#ifndef CommunicationHandler_H
+#define CommunicationHandler_H
 
-#include "graph_structure.h"
+#include "DistributedGraph.h"
 #include "define.h"
 
 /* Class to handle the communications of the distributed graph */
@@ -26,8 +26,9 @@ class CommunicationHandler{
         CommunicationHandler();
         ~CommunicationHandler();
 
-        void init_communications(std::vector<GhostNode> *ghost_nodes);
-        void addToSend(DistributedGraph* g, LocalNode node); 
+        void init_communications(std::vector<GhostNode> *ghost_vertices);
+        // void addToSend(DistributedGraph* g, LocalNode node); 
+        void add_to_send(std::unordered_set<int> * pe_ids, T global_id, T label);
         void clearBuffers();
         void send_recv_data(DistributedGraph* g);
 };
