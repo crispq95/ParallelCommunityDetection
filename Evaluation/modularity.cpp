@@ -11,7 +11,7 @@ using namespace std;
 
 
 void printGraph(const vector<vector<int>>& adjacencyList) {
-    for (size_t i = 0; i < adjacencyList.size(); i++) {
+    for (int i = 0; i < adjacencyList.size(); i++) {
         cout << i << ": ";
         for (int neighbor : adjacencyList[i]) {
             cout << neighbor << " ";
@@ -25,6 +25,28 @@ void printCommunities(const vector<int>& communities) {
     for (size_t i = 0; i < communities.size(); i++) {
         cout << i << ": " << communities[i]  << endl;
     }
+}
+
+
+double calculateModularity(const vector<vector<int>>& adjacencyList, const vector<int>& communities, int numVertex, int numEdges) {
+
+    double modularity = 0.0;
+    vector<int> degrees(numVertex);
+
+    for (int i = 0; i < adjacencyList.size(); i++) {
+        int neighbors = adjacencyList[i].size();
+        degrees[i] = neighbors;
+    }
+
+    /*
+    cout << "Degrreess: ";
+    for (size_t i = 0; i < degrees.size(); i++) {
+        cout << i << ": " << degrees[i]  << endl;
+    }
+    */
+    
+  
+
 }
 
 int main() {
@@ -67,13 +89,16 @@ int main() {
     while (communityFile >> vertex >> community) {
         communities[vertex] = community;
     }
-    
+
     //printCommunities(communities);
-
-
 
     inputFile.close();
     communityFile.close();
+
+
+    calculateModularity(adjacencyList, communities, vertices, edges);
+
+
 
     return 0;
 }
