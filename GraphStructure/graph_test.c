@@ -143,7 +143,7 @@ int main(int argc, char** argv) {
 
     // std::string filename = "/home/crispq/label_propagation/ParallelCommunityDetection/GraphExamples/0_karate_club_metis.txt";
     // std::string filename = "/home/crispq/parallelCommunityDetection/GraphExamples/small_test.txt";
-    std::string filename = "/home/crispq/parallelCommunityDetection/GraphExamples/0_karate_club_metis.txt";
+    std::string filename = "/mnt/c/Users/magda/OneDrive/Desktop/MT/lpa/ParallelCommunityDetection/GraphExamples/0_karate_club_metis.txt";
 
     /* Load graph from file & Construct graph into CSR format */
     // Each process loads its portion of the vertices of the graph 
@@ -369,7 +369,7 @@ int main(int argc, char** argv) {
                                           // rcv any ghost sent by other PEs 
     /* HOW TO ? */
     // each PE = slice of the cake -> write in order in file 
-    std::string output_filename = "/home/crispq/parallelCommunityDetection/output_small_test.txt";
+    std::string output_filename = "/mnt/c/Users/magda/OneDrive/Desktop/MT/lpa/ParallelCommunityDetection/output_small_test.txt";
     std::ofstream myOutputFile;
 
     int current_writer = 0; 
