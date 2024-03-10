@@ -28,7 +28,7 @@ void printCommunities(const vector<int>& communities) {
 }
 
 
-double calculateModularity(const vector<vector<int>>& adjacencyList, const vector<int>& communities, int numVertex, int numEdges) {
+double calculateModularity(const vector<vector<int>>& adjacencyList, const vector<int>& communityAssignment, int numVertex, int numEdges) {
 
     double modularity = 0.0;
     vector<int> degrees(numVertex);
@@ -44,6 +44,22 @@ double calculateModularity(const vector<vector<int>>& adjacencyList, const vecto
         cout << i << ": " << degrees[i]  << endl;
     }
     */
+
+     //Newman-Girvan modularity formula? Only for partitioning to two communities only?
+
+     for (int i = 0; i < adjacencyList.size(); ++i) {
+        int ki = adjacencyList[i].size();  // Degree of vertex i
+        for (const int& j : adjacencyList[i]) {
+            int kj = adjacencyList[j].size();  // Degree of vertex j
+            int a = (communityAssignment[i] == communityAssignment[j]) ? 1 : 0;
+            modularity += (a - static_cast<double>(ki * kj) / (2 * numEdges));
+        }
+    }
+
+    modularity /= (2 * numEdges);
+
+    cout<< modularity << endl;
+
     
   
 
@@ -52,9 +68,10 @@ double calculateModularity(const vector<vector<int>>& adjacencyList, const vecto
 int main() {
     const string filename = "/mnt/c/Users/magda/OneDrive/Desktop/MT/lpa/ParallelCommunityDetection/GraphExamples/0_karate_club_metis.txt";
     const string communityFilename = "/mnt/c/Users/magda/OneDrive/Desktop/MT/lpa/ParallelCommunityDetection/output_small_test.txt";
+    const string communityFilename2 = "/mnt/c/Users/magda/OneDrive/Desktop/MT/lpa/ParallelCommunityDetection/out_papers.txt";
 
     ifstream inputFile(filename);
-    ifstream communityFile(communityFilename);
+    ifstream communityFile(communityFilename2);
 
      if (!inputFile.is_open() || !communityFile.is_open()) {
         cerr << "Error opening the file!" << endl;
