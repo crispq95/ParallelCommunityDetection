@@ -255,7 +255,7 @@ void run_LPA(DistributedGraph *graph, CommunicationHandler *cm, int ns){
             LABEL_T max_label_value = 0;
             std::unordered_set<int> boundary_neighbor_PEs;
 
-            // label_cnt[local_vtx.current_label] = 1; 
+            label_cnt[local_vtx.current_label] = 1; 
 
             // for all neighbors of the local vtx 
             for(auto neigh : (*local_vtx.edges)){
@@ -372,8 +372,8 @@ void run_LPA(DistributedGraph *graph, CommunicationHandler *cm, int ns){
             // cm->send_recv_data(graph); 
             cm->send_recv_data(graph); 
             // std::cout << "Sending data on " << rank << std::endl; 
-            graph->update_local_labels(); 
             graph->update_ghost_labels(cm->get_recv_buffer()); 
+            graph->update_local_labels(); 
         }
         cm->clear_buffers(); 
         nsteps++; //number of LPA steps, change later 
