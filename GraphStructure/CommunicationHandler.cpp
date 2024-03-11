@@ -190,51 +190,61 @@ void CommunicationHandler::recv_data(){
 
 /* WORK IN PROGRESS */
 void CommunicationHandler::send_recv_data(DistributedGraph* g){
-    // send_request.clear();
-    // recv_request.clear();
-
-    // /* Sending data to neighbors */
-    // for ( auto n_PE : neighborPEs ){
-    //     // n_PE : first = RANK / second = id 
-    //     int pe_rank = n_PE.first, pe_idx = n_PE.second;
-        
-    //     // this message sends the amount of data to be sent to this process 
-    //     unsigned long int msg_size = s_buffer[pe_idx].size();
-    //     MPI_Isend(&msg_size, 1, MPI_UNSIGNED_LONG, pe_rank, 11, MPI_COMM_WORLD, &send_request[pe_idx]); // tag of nº = 11 
-
-    //     if(msg_size > 0){
-    //         MPI_Isend(&s_buffer[pe_idx][0], msg_size, MPI_UNSIGNED_LONG, pe_rank, 21, MPI_COMM_WORLD, &send_request[pe_idx*2]); // tag of nº = 21 
+    MPI_Request request;
+    
+    // if(my_rank == 2){
+    //     for( int i=0 ; i< s_buffer[1].size(); i+=2){
+    //         std::cout << "Value of vtx sending to rank 1 id : " << s_buffer[1][i] << " val :" << s_buffer[1][i+1] << "to rank 1"   << std::endl;
     //     }
     // }
-    // MPI_Status status;
-    // // MPI_Wait(&send_request[0], &status);
 
-    // for ( auto n_PE : neighborPEs ){
-    //     int pe_rank = n_PE.first, pe_idx = n_PE.second;
-    //     unsigned long int msg_size = 0; 
+    /* Sending data to neighbors */
+    // For all neighbor PEs 
+    for ( auto n_PE : neighborPEs ){
+        // n_PE : first = RANK / second = id 
+        int pe_rank = n_PE.first, pe_idx = n_PE.second;
         
-    //     // get how many ghosts I'm recvng 
-    //     MPI_Recv(&msg_size, 1, MPI_UNSIGNED_LONG, pe_rank, 11, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    //     // MPI_Recv(&msg_size, 1, MPI_UNSIGNED_LONG, pe_rank, 11, MPI_COMM_WORLD,  &recv_request[pe_idx]);
+        // this message sends the amount of data to be sent to this process 
+        unsigned long int msg_size = s_buffer[pe_idx].size();
+        MPI_Isend(&msg_size, 1, MPI_UNSIGNED_LONG, pe_rank, 11, MPI_COMM_WORLD, &request); // tag of nº = 11 
 
-    //     std::vector<ID_T> temp_rcv_data;
-    //     temp_rcv_data.resize(msg_size); 
+        if(msg_size != 0){
+            MPI_Isend(&s_buffer[pe_idx][0], msg_size, MPI_UNSIGNED_LONG, pe_rank, 21, MPI_COMM_WORLD, &request); // tag of nº = 21 
+        }
+    }
 
-    //     // rcv the data from process pe_rank 
-    //     if(msg_size != 0){
-    //         // MPI_Recv(&temp_rcv_data[0], msg_size, MPI_UNSIGNED_LONG, pe_rank, 21, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    //         MPI_Irecv(&temp_rcv_data[0], msg_size, MPI_UNSIGNED_LONG, pe_rank, 21, MPI_COMM_WORLD, &recv_request[pe_idx+1]);
-    //         MPI_Wait(&recv_request[pe_idx+1], &status);
 
-    //         for( int a=0 ; a < temp_rcv_data.size() ; a+=2 ){
-    //             ID_T local_g_indx = g->from_ghost_global_to_index(temp_rcv_data[a]);
+    for ( auto n_PE : neighborPEs ){
+        int pe_rank = n_PE.first, pe_idx = n_PE.second;
+        unsigned long int msg_size; 
+        
+        // get how many ghosts I'm recvng 
+        MPI_Recv(&msg_size, 1, MPI_UNSIGNED_LONG, pe_rank, 11, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-    //             // update label 
-    //             (*g->get_ghost_vertices())[local_g_indx].current_label = temp_rcv_data[a+1];
-    //         }
-    //     }
-    // }
-    // // MPI_Waitall(MPI_COMM_WORLD, &recv_request[0], &status); // for testing purposes 
+        std::vector<ID_T> temp_rcv_data;
+        temp_rcv_data.resize(msg_size); 
+
+        rcv_buffer[pe_idx].resize(msg_size); 
+
+        // rcv the data from process pe_rank 
+        if(msg_size != 0){
+            // MPI_Recv(&temp_rcv_data[0], msg_size, MPI_UNSIGNED_LONG, pe_rank, 21, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(&rcv_buffer[pe_idx][0], msg_size, MPI_UNSIGNED_LONG, pe_rank, 21, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+        // if(msg_size > 0)
+            // for( int a=0 ; a < temp_rcv_data.size() ; a+=2 ){
+            //     // T local_g_indx = g->ghost_global_ids[temp_rcv_data[a]];
+            //     ID_T local_g_indx = g->from_ghost_global_to_index(temp_rcv_data[a]);
+            //     LABEL_T g_label = temp_rcv_data[a+1];
+
+            //     if(my_rank == 1 && pe_rank == 2)
+            //         std::cout << "Recv : " << temp_rcv_data[a] << " with label : " << g_label << std::endl; 
+            //     // update label 
+            //     // (*g->ghost_vertices)[local_g_indx].current_label = g_label;
+            //     // (*g->get_ghost_vertices())[local_g_indx].current_label = g_label;
+            // }
+        }
+    }
     // clear_buffers();
 }
 

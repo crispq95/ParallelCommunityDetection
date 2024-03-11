@@ -249,7 +249,8 @@ void DistributedGraph::update_ghost_labels(std::vector<std::vector<ID_T>> recv_b
             for( int a=0 ; a < recv_buffer[i].size() ; a+=2 ){
                 // std::cout << "RCV id : " << recv_buffer[i][a] << std::endl; 
                 ID_T local_g_indx = from_ghost_global_to_index(recv_buffer[i][a]);
-
+                
+                // std::cout << "Global id : " << recv_buffer[i][a] << " label : " << recv_buffer[i][a+1] << std::endl; 
                 // update label 
                 (*ghost_vertices)[local_g_indx].current_label = recv_buffer[i][a+1];
             }
