@@ -4,32 +4,44 @@
 #include "DistributedGraph.h"
 #include "define.h"
 
+class DistributedGraph; 
+
 /* Class to handle the communications of the distributed graph */
 class CommunicationHandler{
     // stores the neighbor PEs and their local IDs 
     std::unordered_map<int, int> neighborPEs;   // key : Neighbor process RANK  |  value : local id for s/rcv buffers 
 
-    // Marks a vtx to be sent within a LPA step 
-    std::unordered_map<T, bool> to_be_sent; 
-
     // Stores the information regarding which vtx are we sending to each PE 
-    std::vector<std::vector<T>> s_buffer; 
+    std::vector<std::vector<ID_T>> s_buffer, rcv_buffer; 
 
     // Stores the MPI requests to verify it worked properly
-    std::vector<MPI_Request> recv_request;
+    std::vector<MPI_Request> send_request, recv_request;
 
     // rank / world_size / number of neighbor PEs of this process 
     int my_rank, world_size, no_of_neighbor_PEs;
-
+    
+    //array to keep the ghost vtx ordered 
+    std::vector<std::vector<ID_T>>ordered_ghost_indices;
 
     public: 
         CommunicationHandler();
-        ~CommunicationHandler();
+        ~CommunicationHandler();    
+
+        std::vector<std::vector<ID_T>> get_recv_buffer(){ return rcv_buffer; } ;
+
 
         void init_communications(std::vector<GhostNode> *ghost_vertices);
         // void addToSend(DistributedGraph* g, LocalNode node); 
-        void add_to_send(std::unordered_set<int> * pe_ids, T global_id, T label);
-        void clearBuffers();
+        void add_all_to_send(std::unordered_set<int> * pe_ids, ID_T global_id, ID_T label);
+        void add_label_to_send(std::unordered_set<int> * pe_ids, ID_T label); 
+        void clear_buffers();
         void send_recv_data(DistributedGraph* g);
+        void wait_requests(); 
+        void send_data();
+        void recv_data();  
+
+        /* TO DO : Code to order ghosts / boundary nodes at the beginning */
+        void order_ghosts(std::vector<GhostNode> *ghost_vertices); 
+
 };
 #endif

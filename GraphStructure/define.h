@@ -13,19 +13,20 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <algorithm>
+#include <numeric>
 
 
-typedef unsigned long int T; // unsigned long int ? 
+typedef unsigned long int ID_T; // unsigned long int ? 
 typedef long int LABEL_T;
 
 struct Edge {
-    T target; 
-    T edge_weight;
+    ID_T target; 
+    ID_T edge_weight;
 };
 
 struct Node{
-    T id;
-    T node_weight;
+    ID_T id;
+    ID_T node_weight;
     LABEL_T current_label; 
     // bool active; // maybe we can mark unactive nodes so they dont update anymore 
 };
@@ -39,6 +40,7 @@ struct LocalNode : Node {
 struct GhostNode : Node {
     int pe_id; // id of the PE it belongs to 
 }; 
+
 
 
 #endif 
