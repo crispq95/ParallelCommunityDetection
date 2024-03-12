@@ -21,7 +21,7 @@ class CommunicationHandler{
     int my_rank, world_size, no_of_neighbor_PEs;
     
     //array to keep the ghost vtx ordered 
-    std::vector<std::vector<ID_T>>ordered_ghost_indices;
+    std::vector<int> ordered_ghost_indices;
 
     public: 
         CommunicationHandler();
@@ -35,13 +35,14 @@ class CommunicationHandler{
         void add_all_to_send(std::unordered_set<int> * pe_ids, ID_T global_id, ID_T label);
         void add_label_to_send(std::unordered_set<int> * pe_ids, ID_T label); 
         void clear_buffers();
-        void send_recv_data(DistributedGraph* g);
         void wait_requests(); 
         void send_data();
         void recv_data();  
+        void recv_labels_data();  
 
-        /* TO DO : Code to order ghosts / boundary nodes at the beginning */
+        /* TO DO : Code to order ghosts / boundary nodes at the beginning -- not tested*/
         void order_ghosts(std::vector<GhostNode> *ghost_vertices); 
+        void send_rcv_inactive(std::vector<LocalNode> *local_vertices);
 
 };
 #endif

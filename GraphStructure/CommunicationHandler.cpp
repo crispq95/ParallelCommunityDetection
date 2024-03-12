@@ -116,14 +116,6 @@ void CommunicationHandler::add_label_to_send(std::unordered_set<int> * pe_ids, I
     for ( auto pe_id : (*pe_ids) ) s_buffer[neighborPEs[pe_id]].push_back(label);  
 }
 
-/* TO DO */
-// una funcion que guarde los ids en orden de los ghosts por PE 
-// void CommunicationHandler::order_neighborPE_ghosts(std::vector<GhostNode> *gn){
-//     for( auto g : (*gn)){
-
-//     }
-// }
-
 /*
  *    Class: CommunicationHandler  
  * Function: send_data
@@ -142,18 +134,19 @@ void CommunicationHandler::send_data(){
         unsigned long int msg_size = s_buffer[pe_idx].size();
 
         MPI_Isend(&s_buffer[pe_idx][0], msg_size, MPI_UNSIGNED_LONG, pe_rank, 11, MPI_COMM_WORLD, &request); 
-    
-        // if(my_rank == 0 || my_rank == 1)
-        // {
-        //     std::cout << "sending data from " << my_rank << " to " << pe_rank << " : ";
-        //     for(int i = 0; i < s_buffer[pe_idx].size() ; i+=2){
-        //         std::cout << "[" << s_buffer[pe_idx][i] << ", " << s_buffer[pe_idx][i+1] << "]" << " ";
-        //     }
-        //     std::cout << std::endl;
-        // }
     }
 }
 
+/*
+ *    Class: CommunicationHandler  
+ * Function: recv_data
+ * --------------------
+ * -
+ * 
+ * -:-
+ * 
+ * returns: -
+ */
 void CommunicationHandler::recv_data(){
    for ( auto n_PE : neighborPEs ){
         MPI_Status status; 
@@ -169,83 +162,7 @@ void CommunicationHandler::recv_data(){
 
         // if(msg_size > 0)
         MPI_Recv(&rcv_buffer[pe_idx][0], msg_size, MPI_UNSIGNED_LONG, pe_rank, 11, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-        // if(my_rank == 2){
-        //     std::cout << "Recv data from " << pe_rank << " : ";
-        //     for(int i = 0; i < rcv_buffer[pe_idx].size() ; i+=2){
-        //         std::cout << "[" << rcv_buffer[pe_idx][i] << ", " << rcv_buffer[pe_idx][i+1] << "]" << " ";
-        //     }
-        //     std::cout << std::endl;
-        // }
-        // if(msg_size != 0){
-        //     for( int a=0 ; a < rcv_buffer[pe_idx].size() ; a+=2 ){
-        //         ID_T local_g_indx = g->from_ghost_global_to_index(rcv_buffer[pe_idx][a]);
-
-        //         // update label 
-        //         (*g->get_ghost_vertices())[local_g_indx].current_label = rcv_buffer[pe_idx][a+1];
-        //     }
-        // }
    }
-}
-
-/* WORK IN PROGRESS */
-void CommunicationHandler::send_recv_data(DistributedGraph* g){
-    MPI_Request request;
-    
-    // if(my_rank == 2){
-    //     for( int i=0 ; i< s_buffer[1].size(); i+=2){
-    //         std::cout << "Value of vtx sending to rank 1 id : " << s_buffer[1][i] << " val :" << s_buffer[1][i+1] << "to rank 1"   << std::endl;
-    //     }
-    // }
-
-    /* Sending data to neighbors */
-    // For all neighbor PEs 
-    for ( auto n_PE : neighborPEs ){
-        // n_PE : first = RANK / second = id 
-        int pe_rank = n_PE.first, pe_idx = n_PE.second;
-        
-        // this message sends the amount of data to be sent to this process 
-        unsigned long int msg_size = s_buffer[pe_idx].size();
-        MPI_Isend(&msg_size, 1, MPI_UNSIGNED_LONG, pe_rank, 11, MPI_COMM_WORLD, &request); // tag of nº = 11 
-
-        if(msg_size != 0){
-            MPI_Isend(&s_buffer[pe_idx][0], msg_size, MPI_UNSIGNED_LONG, pe_rank, 21, MPI_COMM_WORLD, &request); // tag of nº = 21 
-        }
-    }
-
-
-    for ( auto n_PE : neighborPEs ){
-        int pe_rank = n_PE.first, pe_idx = n_PE.second;
-        unsigned long int msg_size; 
-        
-        // get how many ghosts I'm recvng 
-        MPI_Recv(&msg_size, 1, MPI_UNSIGNED_LONG, pe_rank, 11, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-        std::vector<ID_T> temp_rcv_data;
-        temp_rcv_data.resize(msg_size); 
-
-        rcv_buffer[pe_idx].resize(msg_size); 
-
-        // rcv the data from process pe_rank 
-        if(msg_size != 0){
-            // MPI_Recv(&temp_rcv_data[0], msg_size, MPI_UNSIGNED_LONG, pe_rank, 21, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            MPI_Recv(&rcv_buffer[pe_idx][0], msg_size, MPI_UNSIGNED_LONG, pe_rank, 21, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-        // if(msg_size > 0)
-            // for( int a=0 ; a < temp_rcv_data.size() ; a+=2 ){
-            //     // T local_g_indx = g->ghost_global_ids[temp_rcv_data[a]];
-            //     ID_T local_g_indx = g->from_ghost_global_to_index(temp_rcv_data[a]);
-            //     LABEL_T g_label = temp_rcv_data[a+1];
-
-            //     if(my_rank == 1 && pe_rank == 2)
-            //         std::cout << "Recv : " << temp_rcv_data[a] << " with label : " << g_label << std::endl; 
-            //     // update label 
-            //     // (*g->ghost_vertices)[local_g_indx].current_label = g_label;
-            //     // (*g->get_ghost_vertices())[local_g_indx].current_label = g_label;
-            // }
-        }
-    }
-    // clear_buffers();
 }
 
 /*
@@ -262,56 +179,79 @@ void CommunicationHandler::wait_requests(){
     clear_buffers();
 }
 
+/*
+ *    Class: CommunicationHandler  
+ * Function: wait_requests
+ * --------------------
+ * -
+ * 
+ * -:-
+ * 
+ * returns: -
+ */
+void CommunicationHandler::send_rcv_inactive(std::vector<LocalNode> *local_vertices){
+    // Send and recieve data from the boundary inactive vtx 
+    // for ( auto vtx : (*local_vertices) ) {
+    //     if( !vtx.is_boundary || vtx.active )
+    //         continue; 
+        
+    //     std::unordered_map<int, int> boundary_neighbor_PEs;
 
-// template <typename T>
-// std::vector<size_t> sort_indexes(const std::vector<T> &v) {
-//   // initialize original index locations
-//   std::vector<size_t> idx(v.size());
-//   iota(idx.begin(), idx.end(), 0);
+    //     for( auto neigh : (*vtx.edges) ){
+    //         if( neigh->id < no_of_vtx_PE)
+    //             continue; 
+    //         int ghost_pe_id = graph->get_ghost_vertices()->at(neigh->id).pe_id;
 
-//   // sort indexes based on comparing values in v
-//   // using std::stable_sort instead of std::sort
-//   // to avoid unnecessary index re-orderings
-//   // when v contains elements of equal values 
-//   stable_sort(idx.begin(), idx.end(),
-//        [&v](size_t i1, size_t i2) {return v[i1] < v[i2];});
+    //         // if the neighbor is a ghost -> keep track of the PE it belongs to 
+    //         if(boundary_neighbor_PEs.find(ghost_pe_id) == boundary_neighbor_PEs.end())
+    //             boundary_neighbor_PEs.insert(ghost_pe_id); 
 
-//   return idx;
-// }
+    //         if(boundary_neighbor_PEs.size() == no_of_neighbor_PEs)
+    //             break; 
+    //     }
 
-/* TO DO */
-void CommunicationHandler::order_ghosts(std::vector<GhostNode> *ghost_vertices){
-    // std::vector<std::vector<ID_T>> ghost_ids_vector;
-    // // std::vector<int> pe_g_cnt;
-    // ghost_ids_vector.reserve(no_of_neighbor_PEs);
-    // ordered_ghost_indices.reserve(no_of_neighbor_PEs);
-    // // pe_g_cnt.reserve(no_of_neighbor_PEs); 
-    // // std::fill(pe_g_cnt.begin(), pe_g_cnt.end(), 0); // init to 0s 
-
-    // // We want, for all boundary vtx -> get the 
-    // for( ID_T i = 0 ; i < (*ghost_vertices).size() ; i++ ){
-    //     // get its global id and the PE it belongs to 
-    //     ID_T global_id = (*ghost_vertices)[i].current_label;
-    //     int loc_pe = neighborPEs[(*ghost_vertices)[i].pe_id];
-
-    //     std::cout << "loc pe : " << loc_pe << std::endl; 
-    //     ghost_ids_vector[0].push_back(global_id);
-    // //     // ordered_ghost_indices[loc_pe].push_back(i);
+    //     for ( auto i : boundary_neighbor_PEs ) {
+    //         int pe_idx = neighborPEs[i];
+    //         ID_T vtx_global_id = graph->from_local_to_global(vtx.id);
+    //         s_buffer[pe_idx].push_back(vtx_global_id);
+    //     }
     // }
 
-    // //once we have all neighbor global_ids and indices
-    // // for( int i = 0 ; i < no_of_neighbor_PEs ; i++ ){
-    // //     ghost_ids_vector[i].reserve(ghost_ids_vector[i].size());
-    // //     for( auto a : sort_indexes<ID_T>((ghost_ids_vector[i]))){
-    // //         ordered_ghost_indices[i].push_back(a);  
-    // //     }
-    // // }
+    // // send the data to neighbor PEs 
+    // MPI_Request request;
+    // // send msg sizes 
+    // for ( auto n_PE : neighborPEs ){
+    //     int pe_rank = n_PE.first, pe_idx = n_PE.second;
+    //     unsigned long int msg_size = s_buffer[pe_idx].size();
 
-    // // if(my_rank != 0){
-    // //     std::cout << "On rank " << my_rank << " we have the following indexes : ";
-    // //     for ( auto a : ordered_ghost_indices[0] ){
-    // //         std::cout << a << " ";
-    // //     }
-    // //     std::cout << std::endl; 
-    // // }
+    //     MPI_Isend(&s_buffer[pe_idx][0], msg_size, MPI_UNSIGNED_LONG, pe_rank, 11, MPI_COMM_WORLD, &request); 
+    // }
+
+    // for ( auto n_PE : neighborPEs ){
+    //     int pe_rank = n_PE.first, pe_idx = n_PE.second;
+    //     unsigned long int msg_size;
+    //     MPI_Status status; 
+
+    //     MPI_Probe(pe_rank, 11, MPI_COMM_WORLD, &status);
+    //     MPI_Get_count(&status, MPI_UNSIGNED_LONG, &msg_size);
+
+    //     rcv_buffer[pe_idx].resize(msg_size); 
+
+    //     if(msg_size > 0)
+    //         MPI_Recv(&rcv_buffer[pe_idx][0], );
+    // }
+}
+
+/*
+ *    Class: CommunicationHandler  
+ * Function: order_ghosts
+ * --------------------
+ * Creates an ordered index array to decide the order of recieved ghosts (if sending only labels)
+ * 
+ * ghost_vertices : Pointer to the vector of ghost vertices of this process
+ * 
+ * returns: -
+ */
+void CommunicationHandler::order_ghosts(std::vector<GhostNode> *ghost_vertices){
+    sort_indexes_by_label<GhostNode>((*ghost_vertices), ordered_ghost_indices);
 } 

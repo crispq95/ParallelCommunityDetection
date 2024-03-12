@@ -28,7 +28,7 @@ struct Node{
     ID_T id;
     ID_T node_weight;
     LABEL_T current_label; 
-    // bool active; // maybe we can mark unactive nodes so they dont update anymore 
+    bool active; // maybe we can mark unactive nodes so they dont update anymore 
 };
 
 struct LocalNode : Node {
@@ -41,6 +41,13 @@ struct GhostNode : Node {
     int pe_id; // id of the PE it belongs to 
 }; 
 
+template <typename T>
+void sort_indexes_by_label(const std::vector<T> &v, std::vector<int> &ordered_ghosts) {
+  ordered_ghosts.resize(v.size());
+  iota(ordered_ghosts.begin(), ordered_ghosts.end(), 0);
 
+  stable_sort(ordered_ghosts.begin(), ordered_ghosts.end(),
+       [&v](size_t i1, size_t i2) {return v[i1].current_label < v[i2].current_label;});
+}
 
 #endif 

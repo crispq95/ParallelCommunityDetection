@@ -46,6 +46,7 @@ class DistributedGraph{
         bool is_ghost( ID_T n_index ); 
         void update_local_labels(); 
         void update_ghost_labels(std::vector<std::vector<ID_T>> recv_buffer); 
+        void update_ghost_labels_from_labels(std::vector<std::vector<ID_T>> recv_buffer, std::vector<int> id_order, std::unordered_map<int,int> neighborPEs);
 };
 
 #endif 

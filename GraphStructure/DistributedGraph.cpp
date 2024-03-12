@@ -162,13 +162,17 @@ void DistributedGraph::create_graph_from_METIS(std::string filename){
 
         LocalNode ln; 
         ln.is_boundary = false; 
+        
 
         ln.id = from_global_to_local(total); 
         ln.node_weight = 1;    // default = 1 
         ln.current_label = total;
         ln.next_label = -1;
         ln.edges = new std::vector<Edge>(); // maybe store memory for edges 
-        (*ln.edges).reserve(ceil(iss.rdbuf()->in_avail()/2));
+
+        int num_neigh = ceil(iss.rdbuf()->in_avail()/2);
+        (*ln.edges).reserve(num_neigh);
+        ln.active = num_neigh < 2 ? false : true;
 
 		// iterate over the words on the file 
 		// the rest are its neighbours 
@@ -243,6 +247,16 @@ void DistributedGraph::update_local_labels(){
         (*local_vertices)[i].current_label = (*local_vertices)[i].next_label; 
 }
 
+/*
+ *    Class: DistributedGraph  
+ * Function: update_ghost_labels
+ * --------------------
+ * Updates ghost labels with the recv_buffer data 
+ * 
+ * recv_buffer: buffer that holds the data recieved from other PEs, each entry on recv buffer matches {global_id, label} pattern 
+ * 
+ * returns: -
+ */
 void DistributedGraph::update_ghost_labels(std::vector<std::vector<ID_T>> recv_buffer){
     for(int i = 0; i < recv_buffer.size(); i++){
         if(recv_buffer[i].size() > 0){
@@ -258,5 +272,28 @@ void DistributedGraph::update_ghost_labels(std::vector<std::vector<ID_T>> recv_b
     }
 }
 
+// NOT TESTED !!! - TO DO 
+/*
+ *    Class: DistributedGraph  
+ * Function: update_ghost_labels_from_labels
+ * --------------------
+ * -
+ * 
+ * -: -
+ * 
+ * returns: -
+ */
+void DistributedGraph::update_ghost_labels_from_labels(std::vector<std::vector<ID_T>> recv_buffer, 
+                                std::vector<int> id_order, std::unordered_map<int,int> neighborPEs){
+    std::vector<int> cnt(recv_buffer.size(), 0);
+    for ( auto i : id_order ){
+        // get the PE rank of each element (in order) and transform to local 
+        int local_pe_id = neighborPEs[(*ghost_vertices)[i].pe_id]; 
+
+        // now go to the recv buffer of this pe and pop an element and store into ith ghost
+        (*ghost_vertices)[i].current_label = recv_buffer[local_pe_id][cnt[local_pe_id]];
+        cnt[local_pe_id]++; 
+    }
+}
 
 
