@@ -189,57 +189,74 @@ void CommunicationHandler::wait_requests(){
  * 
  * returns: -
  */
-void CommunicationHandler::send_rcv_inactive(std::vector<LocalNode> *local_vertices){
+void CommunicationHandler::send_rcv_inactive(DistributedGraph* graph){
+    int no_local_vtx = graph->get_local_vertices()->size();
+
+    int num_deg_1 = 0; 
+
     // Send and recieve data from the boundary inactive vtx 
-    // for ( auto vtx : (*local_vertices) ) {
-    //     if( !vtx.is_boundary || vtx.active )
-    //         continue; 
+    for ( auto vtx : (*graph->get_local_vertices()) ) {
+        if( !vtx.is_boundary || vtx.active )
+            continue; 
         
-    //     std::unordered_map<int, int> boundary_neighbor_PEs;
+        std::unordered_set<int> boundary_neighbor_PEs;
 
-    //     for( auto neigh : (*vtx.edges) ){
-    //         if( neigh->id < no_of_vtx_PE)
-    //             continue; 
-    //         int ghost_pe_id = graph->get_ghost_vertices()->at(neigh->id).pe_id;
+        for( auto neigh : (*vtx.edges) ){
+            if( neigh.target < no_local_vtx )
+                continue; 
 
-    //         // if the neighbor is a ghost -> keep track of the PE it belongs to 
-    //         if(boundary_neighbor_PEs.find(ghost_pe_id) == boundary_neighbor_PEs.end())
-    //             boundary_neighbor_PEs.insert(ghost_pe_id); 
+            int local_idx =  graph->from_local_ghost_to_index(neigh.target);
+            int ghost_pe_id = graph->get_ghost_vertices()->at(local_idx).pe_id;
 
-    //         if(boundary_neighbor_PEs.size() == no_of_neighbor_PEs)
-    //             break; 
-    //     }
+            // if the neighbor is a ghost -> keep track of the PE it belongs to 
+            if(boundary_neighbor_PEs.find(ghost_pe_id) == boundary_neighbor_PEs.end()){
+                boundary_neighbor_PEs.insert(ghost_pe_id); 
+                if(boundary_neighbor_PEs.size() >= no_of_neighbor_PEs)
+                    break; 
+            }
+        }
 
-    //     for ( auto i : boundary_neighbor_PEs ) {
-    //         int pe_idx = neighborPEs[i];
-    //         ID_T vtx_global_id = graph->from_local_to_global(vtx.id);
-    //         s_buffer[pe_idx].push_back(vtx_global_id);
-    //     }
-    // }
+        ID_T vtx_global_id = graph->from_local_to_global(vtx.id);
+        for ( auto i : boundary_neighbor_PEs ) {
+            int pe_idx = neighborPEs[i];
+            s_buffer[pe_idx].push_back(vtx_global_id);
+            num_deg_1++; 
+        }
+    }
 
-    // // send the data to neighbor PEs 
-    // MPI_Request request;
-    // // send msg sizes 
-    // for ( auto n_PE : neighborPEs ){
-    //     int pe_rank = n_PE.first, pe_idx = n_PE.second;
-    //     unsigned long int msg_size = s_buffer[pe_idx].size();
+    // std::cout << "On rank " << my_rank << " I found " << num_deg_1 << " boundary vtx of degree 1 " << std::endl; 
 
-    //     MPI_Isend(&s_buffer[pe_idx][0], msg_size, MPI_UNSIGNED_LONG, pe_rank, 11, MPI_COMM_WORLD, &request); 
-    // }
+    // send the data to neighbor PEs 
+    MPI_Request request;
+    // send msg sizes 
+    for ( auto n_PE : neighborPEs ){
+        int pe_rank = n_PE.first, pe_idx = n_PE.second;
+        int msg_size = s_buffer[pe_idx].size();
 
-    // for ( auto n_PE : neighborPEs ){
-    //     int pe_rank = n_PE.first, pe_idx = n_PE.second;
-    //     unsigned long int msg_size;
-    //     MPI_Status status; 
+        MPI_Isend(&s_buffer[pe_idx][0], msg_size, MPI_UNSIGNED_LONG, pe_rank, 21, MPI_COMM_WORLD, &request); 
+    }
 
-    //     MPI_Probe(pe_rank, 11, MPI_COMM_WORLD, &status);
-    //     MPI_Get_count(&status, MPI_UNSIGNED_LONG, &msg_size);
+    for ( auto n_PE : neighborPEs ){
+        int pe_rank = n_PE.first, pe_idx = n_PE.second;
+        int msg_size;
+        MPI_Status status; 
 
-    //     rcv_buffer[pe_idx].resize(msg_size); 
+        MPI_Probe(pe_rank, 21, MPI_COMM_WORLD, &status);
+        MPI_Get_count(&status, MPI_UNSIGNED_LONG, &msg_size);
 
-    //     if(msg_size > 0)
-    //         MPI_Recv(&rcv_buffer[pe_idx][0], );
-    // }
+        rcv_buffer[pe_idx].resize(msg_size); 
+
+        // if(msg_size > 0)
+        MPI_Recv(&rcv_buffer[pe_idx][0], msg_size, MPI_UNSIGNED_LONG, pe_rank, 21, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    
+        // if(msg_size > 0){
+        //     std::cout << "On rank " << my_rank << " I GOT " << rcv_buffer[pe_idx].size() << " boundary vtx of degree 1 from " << pe_rank << " : "; 
+        //     for(auto r : rcv_buffer[pe_idx])
+        //         std::cout << r << " " << std::endl; 
+        //     std::cout << std::endl; 
+        // }
+    }
+
 }
 
 /*

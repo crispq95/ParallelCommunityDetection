@@ -42,7 +42,7 @@ class CommunicationHandler{
 
         /* TO DO : Code to order ghosts / boundary nodes at the beginning -- not tested*/
         void order_ghosts(std::vector<GhostNode> *ghost_vertices); 
-        void send_rcv_inactive(std::vector<LocalNode> *local_vertices);
+        void send_rcv_inactive( DistributedGraph* graph);
 
 };
 #endif
