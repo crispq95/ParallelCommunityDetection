@@ -50,4 +50,13 @@ void sort_indexes_by_label(const std::vector<T> &v, std::vector<int> &ordered_gh
        [&v](size_t i1, size_t i2) {return v[i1].current_label < v[i2].current_label;});
 }
 
+template <typename T>
+void sort_decreasing_indexes(const std::vector<T> &v, std::vector<ID_T> &ordered_ghosts) {
+  ordered_ghosts.resize(v.size());
+  iota(ordered_ghosts.begin(), ordered_ghosts.end(), 0);
+
+  stable_sort(ordered_ghosts.begin(), ordered_ghosts.end(),
+       [&v](size_t i1, size_t i2) {return v[i1] > v[i2];});
+}
+
 #endif 

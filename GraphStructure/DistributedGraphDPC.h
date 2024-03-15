@@ -4,11 +4,11 @@
 #include "define.h"
 
 // define a class ID_To handle ID_The graph
-class DistributedGraphDPC : public DistributedGraph{
+class DistributedGraphDPC : public DistributedGraph {
     private: 
-        ID_T max_degree, max_weight; 
+        ID_T max_degree, max_weight, num_seeds; 
 
-        std::vector<ID_T> degrees, community_seeds, decreasing_sequence; 
+        std::vector<ID_T> degrees, community_seeds, seed_candidates, decreasing_sequence; 
         std::vector<double> quality, density, centrality_index; 
         std::vector<double> second_order_difference;
 
@@ -16,21 +16,22 @@ class DistributedGraphDPC : public DistributedGraph{
         void calculate_density();
         void calculate_centrality_index();
         void construct_second_order_diff_decreasing_sequence(); 
-
+        void get_number_seeds();
     public: 
         DistributedGraphDPC();
         ~DistributedGraphDPC();
 
         void set_max_degree( ID_T md ) { max_degree = md; }; 
         ID_T get_max_degree() { return max_degree; };
-        std::vector<ID_T> *get_degrees() { return degrees; };
-        std::vector<ID_T> *get_quality() { return quality; };
-        std::vector<ID_T> *get_density() { return density; };
+        // std::vector<ID_T> *get_degrees() { return &degrees; };
+        // std::vector<double> *get_quality() { return &quality; };
+        // std::vector<double> *get_density() { return &density; };
 
         void create_graph_for_DCP_from_METIS(std::string filename);
 
         /* TO-DO : DCP + LPA */
         void find_cores(); 
+        void get_seeds(); 
         void run_DPC_LPA_step(); 
 };
 

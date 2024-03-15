@@ -5,7 +5,7 @@
 
 // define a class ID_To handle ID_The graph
 class DistributedGraph{
-    private: 
+    protected: 
         ID_T no_local_vtx, no_total_edg, no_total_vtx;
         ID_T vtx_begin, vtx_end; 
 
@@ -26,7 +26,6 @@ class DistributedGraph{
         ID_T get_total_edges(){    return no_total_edg; }; 
         ID_T get_vtx_begin(){      return vtx_begin;}; 
         ID_T get_vtx_end(){        return vtx_end;  }; 
-        ID_T get_max_degree(){      return max_degree; }; 
         std::vector<GhostNode>* get_ghost_vertices() { return ghost_vertices; }
         std::vector<LocalNode>* get_local_vertices() { return local_vertices; }
         
