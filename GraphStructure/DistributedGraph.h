@@ -20,6 +20,7 @@ class DistributedGraph{
         void set_total_vtx( ID_T vtx ){ no_total_vtx = vtx; };
         void set_total_edges( ID_T edges ){ no_total_edg = edges; };
         void set_next_label( LABEL_T new_label, ID_T n_id ){ (*local_vertices)[n_id].next_label = new_label; };
+        void set_next_current_label( LABEL_T new_label, ID_T n_id ){ (*local_vertices)[n_id].current_label = new_label; };
         
         ID_T get_local_vtx(){      return no_local_vtx; }; 
         ID_T get_total_vtx(){      return no_total_vtx; }; 
@@ -44,15 +45,16 @@ class DistributedGraph{
         void create_graph_from_METIS(std::string filename);
 
         // test function : 
-        void create_graph_for_DCP_from_METIS(std::string filename);
-
+        // void create_graph_for_DCP_from_METIS(std::string filename);
+        
 
         const std::vector<Edge>* get_neighbors(ID_T local_id); 
         bool is_ghost( ID_T n_index ); 
         void update_local_labels(); 
         void update_ghost_labels(std::vector<std::vector<ID_T>> recv_buffer); 
         void update_ghost_labels_from_labels(std::vector<std::vector<ID_T>> recv_buffer, std::vector<int> id_order, std::unordered_map<int,int> neighborPEs);
-        void update_inactive_ghosts(std::vector<std::vector<ID_T>> recv_buffer);
+        
+        // void update_inactive_ghosts(std::vector<std::vector<ID_T>> recv_buffer);
 };
 
 #endif 

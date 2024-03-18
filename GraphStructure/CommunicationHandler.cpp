@@ -69,14 +69,10 @@ void CommunicationHandler::init_communications(std::vector<GhostNode> *ghost_ver
  */
 void CommunicationHandler::clear_buffers()
 {
-    for( int i = 0 ; i < s_buffer.size() ; i++ ){
+    for( int i = 0 ; i < s_buffer.size() ; i++ )
         s_buffer[i].clear(); 
-        
-    }
-
-    for( int i = 0; i< rcv_buffer.size(); i++){
+    for( int i = 0; i< rcv_buffer.size(); i++)
         rcv_buffer[i].clear();
-    }
 }
 
 /*
@@ -258,6 +254,73 @@ void CommunicationHandler::send_rcv_inactive(DistributedGraph* graph){
     }
 
 }
+
+// test 
+void CommunicationHandler::send_recv_data(){
+    MPI_Request request;
+
+    /* Sending data to neighbors */
+    // For all neighbor PEs 
+    // for ( auto n_PE : neighborPEs ){
+    //     // n_PE : first = RANK / second = id 
+    //     int pe_rank = n_PE.first, pe_idx = n_PE.second;
+        
+    //     // this message sends the amount of data to be sent to this process 
+    //     unsigned long int msg_size = s_buffer[pe_idx].size();
+    //     MPI_Isend(&msg_size, 1, MPI_UNSIGNED_LONG, pe_rank, 11, MPI_COMM_WORLD, &request); // tag of nº = 11 
+
+    //     if(msg_size != 0){
+    //         MPI_Isend(&s_buffer[pe_idx][0], msg_size, MPI_UNSIGNED_LONG, pe_rank, 21, MPI_COMM_WORLD, &request); // tag of nº = 21 
+    //     }
+    // }
+
+    // send msg sizes 
+    for ( auto n_PE : neighborPEs ){
+        int pe_rank = n_PE.first, pe_idx = n_PE.second;
+        unsigned long int msg_size = s_buffer[pe_idx].size();
+
+        MPI_Isend(&s_buffer[pe_idx][0], msg_size, MPI_UNSIGNED_LONG, pe_rank, 11, MPI_COMM_WORLD, &request); 
+    }
+
+
+    for ( auto n_PE : neighborPEs ){
+        int pe_rank = n_PE.first, pe_idx = n_PE.second;
+        int msg_size;
+        MPI_Status status; 
+
+        MPI_Probe(pe_rank, 11, MPI_COMM_WORLD, &status);
+        MPI_Get_count(&status, MPI_UNSIGNED_LONG, &msg_size);
+
+        rcv_buffer[pe_idx].resize(msg_size); 
+
+        if(msg_size > 0)
+            MPI_Recv(&rcv_buffer[pe_idx][0], msg_size, MPI_UNSIGNED_LONG, pe_rank, 11, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
+
+    // for ( auto n_PE : neighborPEs ){
+    //     int pe_rank = n_PE.first, pe_idx = n_PE.second;
+    //     unsigned long int msg_size; 
+        
+    //     // get how many ghosts I'm recvng 
+    //     MPI_Recv(&msg_size, 1, MPI_UNSIGNED_LONG, pe_rank, 11, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+    //     // rcv the data from process pe_rank 
+    //     if(msg_size != 0){
+    //         MPI_Recv(&rcv_buffer[pe_idx][0], msg_size, MPI_UNSIGNED_LONG, pe_rank, 21, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    //         // for( int a=0 ; a < temp_rcv_data.size() ; a+=2 ){
+    //         //     // T local_g_indx = g->ghost_global_ids[temp_rcv_data[a]];
+    //         //     T local_g_indx = g->from_ghost_global_to_index(temp_rcv_data[a]);
+    //         //     LABEL_T g_label = temp_rcv_data[a+1];
+
+    //         //     // update label 
+    //         //     // (*g->ghost_vertices)[local_g_indx].current_label = g_label;
+    //         //     (*g->get_ghost_vertices())[local_g_indx].current_label = g_label;
+    //         // }
+    //     }
+    // }
+    // clear_buffers();
+} 
+
 
 /*
  *    Class: CommunicationHandler  

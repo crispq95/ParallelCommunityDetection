@@ -36,6 +36,9 @@ class CommunicationHandler{
         void add_label_to_send(std::unordered_set<int> * pe_ids, ID_T label); 
         void clear_buffers();
         void wait_requests(); 
+
+        void send_recv_data(); 
+
         void send_data();
         void recv_data();  
         void recv_labels_data();  

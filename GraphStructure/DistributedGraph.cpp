@@ -199,7 +199,6 @@ void DistributedGraph::create_graph_from_METIS(std::string filename){
                     gn.node_weight = 1; // for now, gotta change this 
                     gn.current_label = n_global_id;
                     gn.pe_id =  std::min(static_cast<unsigned int>(floor(static_cast<double>(n_global_id) / my_part)), static_cast<unsigned int>(world_size - 1));
-                    gn.active = true; 
                     ghost_global_ids[n_global_id] = ghost_index;
                     ghost_vertices->push_back(gn);
                     ghost_index++; 
@@ -210,7 +209,6 @@ void DistributedGraph::create_graph_from_METIS(std::string filename){
             num_neigh++;
 		}
         // int num_neigh_test = ceil(word.in_avail()/2);
-        ln.active = num_neigh < 2 ? false : true;
         // std::cout << "Vtx with global id " << total << " has " << num_neigh << " neighbors thus it is " << ln.active << std::endl;
 
         local_vertices->push_back(ln); 
@@ -241,7 +239,7 @@ bool DistributedGraph::is_ghost( ID_T n_index ){
  *    Class: DistributedGraph  
  * Function: update_local_labels
  * --------------------
- * Updates local labels from current to next label
+ * Updates local labels from current to next labelupdate_ghost_labels
  * 
  * -: -
  * 
@@ -249,8 +247,7 @@ bool DistributedGraph::is_ghost( ID_T n_index ){
  */
 void DistributedGraph::update_local_labels(){
     for (ID_T i = 0 ; i < (*local_vertices).size() ; i++ )
-        if((*local_vertices)[i].active)
-            (*local_vertices)[i].current_label = (*local_vertices)[i].next_label; 
+        (*local_vertices)[i].current_label = (*local_vertices)[i].next_label; 
 }
 
 /*
@@ -266,7 +263,7 @@ void DistributedGraph::update_local_labels(){
 void DistributedGraph::update_ghost_labels(std::vector<std::vector<ID_T>> recv_buffer){
     for(int i = 0; i < recv_buffer.size(); i++){
         if(recv_buffer[i].size() > 0){
-            for( int a=0 ; a < recv_buffer[i].size() ; a+=2 ){
+            for( int a=0 ; a < recv_buffer[i].size()-2 ; a+=2 ){
                 // std::cout << "RCV id : " << recv_buffer[i][a] << std::endl; 
                 ID_T local_g_indx = from_ghost_global_to_index(recv_buffer[i][a]);
                 
@@ -299,27 +296,5 @@ void DistributedGraph::update_ghost_labels_from_labels(std::vector<std::vector<I
         // now go to the recv buffer of this pe and pop an element and store into ith ghost
         (*ghost_vertices)[i].current_label = recv_buffer[local_pe_id][cnt[local_pe_id]];
         cnt[local_pe_id]++; 
-    }
-}
-
-/*
- *    Class: DistributedGraph  
- * Function: update_inactive_ghosts
- * --------------------
- * Updates active state on ghosts from recieved data 
- * 
- * -: -
- * 
- * returns: -
- */
-void DistributedGraph::update_inactive_ghosts(std::vector<std::vector<ID_T>> recv_buffer){
-    for( int pe_idx = 0 ; pe_idx < recv_buffer.size(); pe_idx++ ){
-        for ( auto ghost_global_id : recv_buffer[pe_idx]){
-            int local_gh_indx = from_ghost_global_to_index(ghost_global_id);
-
-            // std::cout << "Local vtx : " << local_gh_indx << " for ghost global id : " << ghost_global_id << std::endl; 
-
-            (*ghost_vertices)[local_gh_indx].active = false;   // set them as inactive 
-        } 
     }
 }
