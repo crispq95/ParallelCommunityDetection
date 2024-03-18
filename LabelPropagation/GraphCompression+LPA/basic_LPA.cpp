@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <iomanip>
 #include <vector>
+#include <set>
 
 #include "../../GraphStructure/CommunicationHandler.h"
 #include "../../GraphStructure/DistributedGraph.h"
@@ -273,15 +274,27 @@ void run_LPA(DistributedGraph *graph, CommunicationHandler *cm, int ns){
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    int updated = graph->get_total_vtx();
+    int c_ids, o_ids=0; 
+    int updated = graph->get_total_vtx(), go_next = 1;
 
     int updt_thresh = ceil(graph->get_total_vtx()*0.0001); 
 
+    std::set<ID_T> current_ids;
+    std::unordered_map<LABEL_T, ID_T> c_m, o_m; 
+    // int current_ids, old_ids; 
+
+
     std::cout << "Thresh : " << updt_thresh << " nº vtx : " <<  updated << std::endl; 
+    
     std::vector<ID_T>end_c((*graph->get_local_vertices()).size());
-    while(updated > updt_thresh && nsteps < ns){
+
+    while( go_next > 0 && nsteps < ns){ //updated > updt_thresh
         // end_c.clear(); 
         updated = 0; 
+        current_ids.clear();
+        c_m.clear(); 
+        c_ids=0;    
+
         for(auto local_vtx : (*graph->get_local_vertices())){
             if(local_vtx.is_boundary) // for non boundary vtx 
                 continue; 
@@ -399,7 +412,55 @@ void run_LPA(DistributedGraph *graph, CommunicationHandler *cm, int ns){
 
         }
 
+
+        /* CHECK FOR CONVERGENCE : */
+        /* CNT Nº labels on this iteration */
+        for( auto vtx : (*graph->get_local_vertices()) ){
+            if(find(current_ids.begin(), current_ids.end(), vtx.next_label) == current_ids.end()){
+                current_ids.insert(vtx.next_label);
+                c_ids++;
+            }
+        }
+
+        go_next = 0; 
+        // if nº current labels ==  nº old labels 
+        if(c_ids == o_ids){
+            std::cout << "At step " << nsteps << " the number of labels [" << c_ids << "] is stable. " << std::endl;
+            // may converge -> for each label -> cnt nº of vtx on label 
+            for( auto vtx : (*graph->get_local_vertices()) ){
+                if(c_m.find(vtx.current_label) != c_m.end()){
+                    c_m[vtx.next_label]++; 
+                }else{    
+                    c_m[vtx.next_label] = 1; 
+                }
+            }
+
+            // get min current_la    
+            for(auto c : c_m){
+                c_m[c.first] = std::min(c.second, o_m[c.first]);
+                if(c_m[c.first] != o_m[c.first]){
+                    go_next = 1; 
+                }
+            }
+
+        }else{
+            go_next = 1; 
+        }
         
+        MPI_Allreduce(MPI_IN_PLACE, &go_next, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD); 
+        if(go_next == 0)
+            std::cout << "At step " << nsteps << " nº vtx updated : " <<  go_next << std::endl; 
+
+        o_ids = c_ids; 
+        o_m.clear(); 
+        for(auto i : c_m ){
+            o_m[i.first] = i.second;
+
+        }
+
+
+        /* END CHECK FOR CONVERGENCE : */
+
         /* TO DO */
         // Evaluate if LPA it finished 
         // if(nsteps > 0){
@@ -407,7 +468,7 @@ void run_LPA(DistributedGraph *graph, CommunicationHandler *cm, int ns){
             // end_condition = ( graph->get_local_vtx() == std::accumulate(end_c.begin(),end_c.end(),0)) ? 1 : 0;
             // MPI_Allreduce(MPI_IN_PLACE, &end_condition, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD); 
             MPI_Allreduce(MPI_IN_PLACE, &updated, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD); 
-            std::cout << "At step " << nsteps << " nº vtx updated : " <<  updated << std::endl; 
+            // std::cout << "At step " << nsteps << " nº vtx updated : " <<  updated << std::endl; 
 
             // if(nsteps > 10 ){
             //     // if( rank == 0 )
@@ -424,11 +485,11 @@ void run_LPA(DistributedGraph *graph, CommunicationHandler *cm, int ns){
             //     end_condition = 0; 
         // }
 
-        if(updated > updt_thresh && nsteps < ns-1){
+        if(go_next != 0  && nsteps < ns-1){ //updated > updt_thresh
             // cm->send_recv_data(graph); 
             cm->send_data();
-            graph->update_local_labels(); 
         }
+        graph->update_local_labels(); 
         nsteps++; //number of LPA steps, change later 
         if(rank == 0)
             std::cout << " Current step : " << nsteps << std::endl;
@@ -452,6 +513,7 @@ void run_asynchronous_LPA(DistributedGraph *graph, CommunicationHandler *cm, int
     // int running = 0; 
     int eval = false; 
     std::vector<ID_T>end_c((*graph->get_local_vertices()).size());
+
     while(end_condition > 0 && nsteps < ns){
         end_c.clear(); 
         if(eval == true)
@@ -821,8 +883,8 @@ int main(int argc, char** argv) {
     }
 
     /* Create graph and communication handler */
-    // DistributedGraph graph; 
-    DistributedCompressedGraph graph; 
+    DistributedGraph graph; 
+    // DistributedCompressedGraph graph; 
     CommunicationHandler cm; 
 
     /* Init graph from input file */
@@ -834,9 +896,9 @@ int main(int argc, char** argv) {
     // cm.order_ghosts(graph.get_ghost_vertices());
 
     // RUN LPA 
-    // run_LPA(&graph, &cm, ns);
+    run_LPA(&graph, &cm, ns);
     // run_asynchronous_LPA(&graph, &cm, ns);
-    run_with_compression_LPA(&graph, &cm, ns);
+    // run_with_compression_LPA(&graph, &cm, ns);
     // run_basic_asynchronous_LPA(&graph, &cm, ns);
     
 
