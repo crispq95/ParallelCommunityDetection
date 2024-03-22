@@ -13,6 +13,7 @@ class CommunicationHandler{
 
     // Stores the information regarding which vtx are we sending to each PE 
     std::vector<std::vector<ID_T>> s_buffer, rcv_buffer; 
+    std::vector<std::vector<double>> s_buffer_weight, rcv_buffer_weight; // EDIT LATER  
 
     // Stores the MPI requests to verify it worked properly
     std::vector<MPI_Request> send_request, recv_request;
@@ -27,10 +28,11 @@ class CommunicationHandler{
         CommunicationHandler();
         ~CommunicationHandler();    
 
-        std::vector<std::vector<ID_T>> get_recv_buffer(){ return rcv_buffer; } ;
+        std::vector<std::vector<ID_T>> get_recv_buffer(){ return rcv_buffer; };
+        /* NEXT LINE ONLY DPC */
+        std::vector<std::vector<double>> get_recv_weight_buffer(){ return rcv_buffer_weight; };
+
         int get_neigh_PEs(){ return no_of_neighbor_PEs; };
-
-
         void init_communications(std::vector<GhostNode> *ghost_vertices);
         // void addToSend(DistributedGraph* g, LocalNode node); 
         void add_all_to_send(std::unordered_set<int> * pe_ids, ID_T global_id, ID_T label);
@@ -44,9 +46,22 @@ class CommunicationHandler{
         void recv_data();  
         void recv_labels_data();  
 
+        /* TO DO : Send-recv for DPC-LPA */
+        // void send_recv_label_weight_data(); 
+        void add_seeds_to_send(const std::unordered_set<int>& pe_ids, ID_T global_id, double weight);
+        // MUST BE IMPROVED 
+        void send_recv_candidate_data();
+        // MUST BE IMPROVED 
+        void add_candidate_to_send(const std::unordered_set<int>& pe_ids, ID_T global_id, ID_T label, double weight);
+        
+
+        // void send_label_weight_data();
+
         /* TO DO : Code to order ghosts / boundary nodes at the beginning -- not tested*/
         void order_ghosts(std::vector<GhostNode> *ghost_vertices); 
         void send_rcv_inactive( DistributedGraph* graph);
+
+
 
 };
 #endif

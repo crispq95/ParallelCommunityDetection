@@ -54,6 +54,10 @@ void CommunicationHandler::init_communications(std::vector<GhostNode> *ghost_ver
     send_request.resize(no_of_neighbor_PEs*2); // one for the msg size another for the msg itself 
     recv_request.resize(no_of_neighbor_PEs*2); 
     rcv_buffer.resize(no_of_neighbor_PEs); 
+
+    // DPC _ LPA 
+    rcv_buffer_weight.resize(no_of_neighbor_PEs); 
+    s_buffer_weight.resize(no_of_neighbor_PEs); 
     
 }
 
@@ -336,3 +340,59 @@ void CommunicationHandler::send_recv_data(){
 void CommunicationHandler::order_ghosts(std::vector<GhostNode> *ghost_vertices){
     sort_indexes_by_label<GhostNode>((*ghost_vertices), ordered_ghost_indices);
 } 
+
+/* Code for DPC LPA */
+/* Nothing here is tested : */
+// adds seeds to be sent, its label and weight included for each seed candidate
+void CommunicationHandler::add_seeds_to_send(const std::unordered_set<int>& pe_ids, ID_T global_id, double weight){
+    for ( auto pe_id : pe_ids ){
+        int pe_idx = neighborPEs[pe_id];
+
+        s_buffer[pe_idx].push_back(global_id);
+        s_buffer_weight[pe_idx].push_back(weight);  
+    }
+}
+
+// sends and recieves info of seed candidates 
+void CommunicationHandler::send_recv_candidate_data(){
+    MPI_Request request;
+
+    // send msg sizes 
+    for ( auto n_PE : neighborPEs ){
+        int pe_rank = n_PE.first, pe_idx = n_PE.second;
+        unsigned long int msg_size = s_buffer[pe_idx].size();
+
+        MPI_Isend(&s_buffer[pe_idx][0], msg_size, MPI_UNSIGNED_LONG, pe_rank, 11, MPI_COMM_WORLD, &request); 
+        MPI_Isend(&s_buffer_weight[pe_idx][0], msg_size, MPI_DOUBLE, pe_rank, 21, MPI_COMM_WORLD, &request); 
+    }
+
+
+    for ( auto n_PE : neighborPEs ){
+        int pe_rank = n_PE.first, pe_idx = n_PE.second;
+        int msg_size;
+        MPI_Status status; 
+
+        MPI_Probe(pe_rank, 11, MPI_COMM_WORLD, &status);
+        MPI_Probe(pe_rank, 21, MPI_COMM_WORLD, &status);
+        MPI_Get_count(&status, MPI_UNSIGNED_LONG, &msg_size);
+        
+        rcv_buffer[pe_idx].resize(msg_size); 
+        rcv_buffer_weight[pe_idx].resize(msg_size); 
+
+        if(msg_size > 0){
+            MPI_Recv(&rcv_buffer[pe_idx][0], msg_size, MPI_UNSIGNED_LONG, pe_rank, 11, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(&rcv_buffer_weight[pe_idx][0], msg_size, MPI_DOUBLE, pe_rank, 21, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        }
+    }
+} 
+
+// addes candidate that changed into queue -> must be changed later to send only <label_id:list_ids, label_id2:list_ids, etc.> 
+void CommunicationHandler::add_candidate_to_send(const std::unordered_set<int>& pe_ids, ID_T global_id, ID_T label, double weight){
+    for ( auto pe_id : pe_ids ){
+        int pe_idx = neighborPEs[pe_id];
+
+        s_buffer[pe_idx].push_back(global_id);
+        s_buffer[pe_idx].push_back(label);
+        s_buffer_weight[pe_idx].push_back(weight);  
+    }
+}

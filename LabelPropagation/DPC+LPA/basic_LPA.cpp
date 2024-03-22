@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
     /* Init graph from input file */
     graph.create_graph_for_DCP_from_METIS(filename);
     
-    // /* Init communication structure */
+    /* Init communication structure */
     cm.init_communications(graph.get_ghost_vertices()); 
 
     graph.get_seeds(ns, &cm); 

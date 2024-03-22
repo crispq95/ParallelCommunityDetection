@@ -168,19 +168,19 @@ void DistributedGraphDPC::calculate_quality(){
 // density (normalized) = deg/max_deg 
 void DistributedGraphDPC::calculate_density(){
     // get max value for degree (of this PE):
-    // max_degree = (*std::max_element(degrees.begin(), degrees.end()));
+    max_degree = (*std::max_element(degrees.begin(), degrees.end()));
 
     // std::cout << "MAX DEG : " << max_degree << std::endl;
     // get max GLOBAL value 
-    // MPI_Allreduce(MPI_IN_PLACE, &max_degree, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD); 
+    MPI_Allreduce(MPI_IN_PLACE, &max_degree, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD); 
 
-    // calculate avg degree 
+    //// calculate avg degree 
     // double avg_deg = 0; 
-    // density.reserve(no_local_vtx); 
-    // for ( auto deg : degrees ) {
-    //     density.push_back(deg/(double)max_degree); 
-    //     avg_deg += deg; 
-    // }
+    density.reserve(no_local_vtx); 
+    for ( auto deg : degrees ) {
+        density.push_back(deg/(double)max_degree); 
+        // avg_deg += deg; 
+    }
     
     // MPI_Allreduce(MPI_IN_PLACE, &avg_deg, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD); 
     // avg_deg = avg_deg/no_total_vtx;
@@ -311,7 +311,7 @@ void DistributedGraphDPC::construct_second_order_diff_decreasing_sequence(){
 
     // get candidate seeds of this PE 
     decreasing_sequence.reserve(no_local_vtx);
-    ck_distance_weights.resize(no_local_vtx, -1);
+    ck_distance_weights.resize(no_local_vtx+(*ghost_vertices).size(), -1);
     // std::fill(ck_distance_weights.begin(), ck_distance_weights.end(), -1);
     sort_decreasing_indexes(degrees, decreasing_sequence);
 
@@ -336,8 +336,11 @@ void DistributedGraphDPC::construct_second_order_diff_decreasing_sequence(){
 
         (*local_vertices)[candidate_seed].next_label = from_local_to_global(candidate_seed); 
         // ck_distance_weights.insert(ck_distance_weights.begin()+candidate_seed, (DEFAULT_WEIGTH + SEED_WEIGTH + 1));
-        ck_distance_weights[candidate_seed] = double(DEFAULT_WEIGTH + SEED_WEIGTH + 1);  
+        ck_distance_weights[candidate_seed] = double(DEFAULT_WEIGTH + SEED_WEIGTH + degrees[candidate_seed]/(double)max_degree);  
         candidate_queue.push(candidate_seed);
+
+        // std::cout << "Candidate : " << from_local_to_global(candidate_seed) << " has weight : "; 
+        // std::cout << degrees[candidate_seed] << "/" << (double)max_degree << "= " <<  ck_distance_weights[candidate_seed] << std::endl;
 
         // if it is boundary -> add to send [label updated!]
         found_communities++; 
@@ -358,98 +361,13 @@ void DistributedGraphDPC::construct_second_order_diff_decreasing_sequence(){
         }
         
         if(boundary_candidate){   // only necessary to send candidate seed id (label == id) <- modify later
-            cm->add_all_to_send(&boundary_neighbor_PEs, from_local_to_global(candidate_seed), from_local_to_global(candidate_seed));
+            cm->add_seeds_to_send(boundary_neighbor_PEs, from_local_to_global(candidate_seed), ck_distance_weights[candidate_seed]);
         }
     }
     
-    cm->send_data(); 
+    cm->send_recv_candidate_data(); 
     update_local_labels(); 
-    cm->recv_data(); 
-    update_ghost_labels(cm->get_recv_buffer());
-
-
-    // std::cout << "Printing ghost labels on "<< rank << " : " << std::endl;
-    // for(auto gh : ghost_global_ids ){
-    //     ID_T g_id = gh.first, l_idx = gh.second; 
-
-    //     std::cout << g_id << "," << (*ghost_vertices)[l_idx].current_label << " , " << l_idx << "] || "; 
-    // }   
-
-
-    // std::cout << std::endl; 
-
-    // update all labels to next 
-
-    // std::cout<< "Out from " << rank << std::endl; 
-
-    // printf("Candidates on rank %d are : ", rank);
-    // while(!candidate_queue.empty()){
-    //     ID_T q = candidate_queue.front(); 
-    //     candidate_queue.pop(); 
-    //     printf("%ld [deg %ld] - ",  from_local_to_global((*local_vertices)[q].id), degrees[(*local_vertices)[q].id]);
-    // }
-
-    // for( int i = 0; i < no_local_vtx; i++ ){
-    //     if((*local_vertices)[i].next_label != -1)
-    //         printf("%ld [deg %ld] - ",  from_local_to_global((*local_vertices)[i].id), degrees[(*local_vertices)[i].id]);
-    // }
-
-    // printf("\n");
-
-    // std::cout << "Nº elem : " << ck_distance_weights.size() << std::endl; 
-
-    // std::vector<ID_T> tmp_degree, tmp_ids; 
-    // tmp_degree.reserve(no_local_vtx);  
-    // tmp_ids.reserve(no_local_vtx); 
-
-    // for( int i = 0; i < size_send; i++ ){
-    //     tmp_degree.push_back(degrees[decreasing_sequence[i]]);
-    //     tmp_ids.push_back(from_local_to_global(decreasing_sequence[i])); 
-    // }
-
-    // // send-recv candidates from other PEs
-    // MPI_Allgather(&tmp_degree[0] , size_send, MPI_UNSIGNED_LONG, &community_seed_degrees[0], rcv_size, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
-    // MPI_Allgather(&tmp_ids[0], size_send, MPI_UNSIGNED_LONG, &community_seeds[0], rcv_size, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
-
-    // // order arrays by degree
-    // decreasing_sequence.clear(); 
-    // decreasing_sequence.resize(num_seeds); 
-    // sort_decreasing_indexes(tmp_degree, decreasing_sequence);
-
-    // // decide which ones are seeds 
-    // int found_communities = 0, candidate = 0; 
-    // while(found_communities < num_seeds && candidate < num_seeds){
-    //     // get current candidate 
-    //     ID_T candidate_seed = community_seeds[decreasing_sequence[candidate]];
-    //     candidate++;
-    //     // if candidate cannot be a seed -> skip this candidate 
-    //     if(label_counters[candidate_seed] == 1){
-    //         continue; // go next 
-    //     }
-    //     if( candidate_seed < vtx_begin || tmp_ids >= vtx_end) {
-    //         (*local_vertices)[candidate_seed].next_label = from_global_to_local(candidate_seed); 
-
-    //     }else {
-    //         (*ghost_vertices)[candidate_seed].current_label = from_local_ghost_to_index(ghost_global_ids[candidate_seed]); 
-    //     }
-    //     // else -> candidate is a seed 
-    //     // mark it as seed (membership = candidate)
-    //     ck_distance_weights.push_back(DEFAULT_WEIGTH + SEED_WEIGTH + 1);
-    //     seed_nodes.push_back(candidate_seed);
-
-    //     for(int i=0; i<igraph_vector_size(&seed_neighbors); i++){
-    //         int v = VECTOR(seed_neighbors)[i];
-    //         // remove all neighbors from candidate list 
-    //         VECTOR(label_counters)[v] += 1;   
-    //     }
-
-    //     found_communities++;
-    // }
-
-
-//   printf("FOUND COMMUNITIES : %d\n", found_communities); 
-    
-    // init the weight of seeds of this PE 
+    update_ghost_seeds(cm->get_recv_buffer(), cm->get_recv_weight_buffer());
  }
  
 
@@ -472,34 +390,62 @@ void DistributedGraphDPC::find_cores(){
             ghost_candidate_seeds.insert(g.id);
     }
 
+    // for all enqueued candidates (local seeds)
+    // remove candidate seeds from other PEs that are not 
     while(!candidate_queue.empty()){
         ID_T q = from_global_to_local(candidate_queue.front());
         candidate_queue.pop();
         bool found = false; // if not found -> the seed adds its neighbors to the queue 
 
-        // for the neighbors of the 
+        // for all the neighbors of the candidate seed 
         for( auto neigh : (*(*local_vertices)[q].edges)){
             ID_T neighbo_local_id = neigh.target;
-            // they may be a candidate only if the neighbor is a ghost 
-            if(is_ghost(neighbo_local_id)){
-                //if it is a ghost, check if it is on the set of candidates 
+            // they may be a candidate only if the neighbor is a ghost (local seeds which are neighbors are already excluded) 
+            if(is_ghost(neighb_local_id)){
+                // if it is a ghost, check if it is on the set of candidates 
                 if( ghost_candidate_seeds[neighbo_local_id] != ghost_candidate_seeds.end() ){
-                    // keep the label of the vertex with more OR keep in candidates until further notice 
+                    // evaluate wether to keep or change the label of the local seed 
+                    if( ck_distance_weights[q] < ck_distance_weights[ghost_candidate_seeds[neighb_local_id]]  ){ // check if this is the correct neighbor 
+                        ck_distance_weights[q] = ck_distance_weights[ghost_candidate_seeds[neighb_local_id]];   // set the seed as the max seed of ghost neighbor  
+                    }else if ( ck_distance_weights[q] == ck_distance_weights[ghost_candidate_seeds[neighb_local_id]] ){    // break tie by highest label 
+                        if ( (*local_vertices)[q].current_label < (*ghost_vertices)[neighb_local_id] )
+                            (*local_vertices)[q].current_label = (*ghost_vertices)[q].label;
+                    }
+                    // mark as found -> another seed candidate is found among neighbors 
                     found = true; 
                 }
-            }else{
-                local_vertices[neighbo_local_id].next_label = local_vertices[q].current_label;
             }
+            // append to a list all of the neighbors of the seed that are 
+            // else{
+            //     // if neighbor is not a ghost -> should add the 
+            //     local_vertices[neighb_local_id].next_label = (*local_vertices)[q].current_label;
+            // }
         }
 
-        // if it is neighbor to a single seed : 
+        // if the vtx is a seed : 
         if(!found){
             /* add all neighbors to community CORE  */
-            // set the label of the neighbors 
-            
-        // if it is neighbor to more than one seed : 
-        }else {
+            // set the label of the neighbors + add to queue next bacth of neighbors 
+            for( auto neigh_of_seed : ((*(*local_vertices)[q].edges)) ){
+                // found = false; 
+                for( auto neigh_of_neigh : ((*(*local_vertices)[neigh_of_seed].edges)) ){
+                    // if neigh_of_neigh is seed -> dont set a label for neigh_of_seed  
+                    if( ghost_candidate_seeds[neigh_of_neigh] != ghost_candidate_seeds.end() ){
+                        // but add to the next queue 
+                        next_queue.push(neigh_of_neigh);
+                        if((*local_vertices)[neigh_of_seed].is_boundary){
+                            // add to send queue ??? i dont thik so ?
+                        }
+                        // found = true; 
+                    }else{
+                        // label neigh_of_seed as CORE
 
+                        // add to queue 
+                        if()
+                    }
+                }
+            }
+            
         }
     }
 
@@ -577,3 +523,20 @@ void DistributedGraphDPC::find_cores(){
 // //         }
 // //     }
 // // }
+
+// 
+void DistributedGraphDPC::update_ghost_seeds(const std::vector<std::vector<ID_T>>& recv_buffer_ids, const std::vector<std::vector<double>>& recv_buffer_weight){
+    for(int i = 0; i < recv_buffer_ids.size(); i++){
+        if(recv_buffer_ids[i].size() > 0){
+            for( int j=0 ; j < recv_buffer_ids[i].size() ; j++ ){
+                // std::cout << "RCV id : " << recv_buffer[i][a] << std::endl; 
+                ID_T local_g_indx = from_ghost_global_to_index(recv_buffer_ids[i][j]);
+                
+                // std::cout << "Recv ghost : " << recv_buffer_ids[i][j] << " gh ["<< local_g_indx <<"] : " << (*ghost_vertices)[local_g_indx].id  << " with weight : " << recv_buffer_weight[i][j] << std::endl;
+                (*ghost_vertices)[local_g_indx].current_label = recv_buffer_ids[i][j];
+                ck_distance_weights[(*ghost_vertices)[local_g_indx].id] = recv_buffer_weight[i][j];
+                std::cout << "Setting weight to vtx labeled : " << (*ghost_vertices)[local_g_indx].id  << " to " <<  recv_buffer_weight[i][j]  << " result = " << ck_distance_weights[(*ghost_vertices)[local_g_indx].id] << std::endl;
+            }
+        }
+    }
+}

@@ -38,6 +38,7 @@ class DistributedGraphDPC : public DistributedGraph {
         /* TO-DO : DCP + LPA */
         void find_cores(); 
         void get_seeds( int num_seeds, CommunicationHandler* cm ); 
+        void update_ghost_seeds(const std::vector<std::vector<ID_T>>& recv_buffer_ids, const std::vector<std::vector<double>>& recv_buffer_weight); 
         // void run_DPC_LPA_step(); 
 };
 
