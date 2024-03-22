@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
     // /* Init communication structure */
     cm.init_communications(graph.get_ghost_vertices()); 
 
-    graph.get_seeds(); 
+    graph.get_seeds(ns, &cm); 
 
     // RUN LPA 
     // run_DPC_LPA(&graph, &cm, ns);

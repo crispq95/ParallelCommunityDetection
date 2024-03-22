@@ -112,6 +112,7 @@ void CommunicationHandler::add_label_to_send(std::unordered_set<int> * pe_ids, I
     for ( auto pe_id : (*pe_ids) ) s_buffer[neighborPEs[pe_id]].push_back(label);  
 }
 
+
 /*
  *    Class: CommunicationHandler  
  * Function: send_data

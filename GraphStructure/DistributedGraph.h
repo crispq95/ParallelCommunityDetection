@@ -2,6 +2,7 @@
 #define DistributedGraph_H
 
 #include "define.h"
+#include "CommunicationHandler.h"
 
 // define a class ID_To handle ID_The graph
 class DistributedGraph{
@@ -55,6 +56,7 @@ class DistributedGraph{
         void update_ghost_labels_from_labels(std::vector<std::vector<ID_T>> recv_buffer, std::vector<int> id_order, std::unordered_map<int,int> neighborPEs);
         
         // void update_inactive_ghosts(std::vector<std::vector<ID_T>> recv_buffer);
+        int count_neighbor_labels( const LocalNode& local_vtx, CommunicationHandler& cm );
 };
 
 #endif 

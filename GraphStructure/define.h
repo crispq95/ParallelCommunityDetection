@@ -14,10 +14,14 @@
 #include <unordered_set>
 #include <algorithm>
 #include <numeric>
+#include <queue>
 
 
 typedef unsigned long int ID_T; // unsigned long int ? 
 typedef long int LABEL_T;
+
+#define DEFAULT_WEIGTH 1
+#define SEED_WEIGTH 2
 
 struct Edge {
     ID_T target; 

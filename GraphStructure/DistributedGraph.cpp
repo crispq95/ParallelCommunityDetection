@@ -239,7 +239,7 @@ bool DistributedGraph::is_ghost( ID_T n_index ){
  *    Class: DistributedGraph  
  * Function: update_local_labels
  * --------------------
- * Updates local labels from current to next labelupdate_ghost_labels
+ * Updates local labels from current to next label
  * 
  * -: -
  * 
@@ -263,11 +263,12 @@ void DistributedGraph::update_local_labels(){
 void DistributedGraph::update_ghost_labels(std::vector<std::vector<ID_T>> recv_buffer){
     for(int i = 0; i < recv_buffer.size(); i++){
         if(recv_buffer[i].size() > 0){
-            for( int a=0 ; a < recv_buffer[i].size()-2 ; a+=2 ){
+            for( int a=0 ; a < recv_buffer[i].size() ; a+=2 ){
                 // std::cout << "RCV id : " << recv_buffer[i][a] << std::endl; 
                 ID_T local_g_indx = from_ghost_global_to_index(recv_buffer[i][a]);
                 
                 // std::cout << "Global id : " << recv_buffer[i][a] << " label : " << recv_buffer[i][a+1] << std::endl; 
+
                 // update label 
                 (*ghost_vertices)[local_g_indx].current_label = recv_buffer[i][a+1];
             }
@@ -297,4 +298,57 @@ void DistributedGraph::update_ghost_labels_from_labels(std::vector<std::vector<I
         (*ghost_vertices)[i].current_label = recv_buffer[local_pe_id][cnt[local_pe_id]];
         cnt[local_pe_id]++; 
     }
+}
+
+
+    
+int DistributedGraph::count_neighbor_labels( const LocalNode& local_vtx, CommunicationHandler& cm ){
+    std::unordered_map<ID_T,ID_T> label_cnt; 
+    LABEL_T max_label_value = 0; 
+    std::vector<ID_T> max_labels; 
+    int updated = 0;
+    std::unordered_set<int> boundary_neighbor_PEs;
+
+    label_cnt[local_vtx.current_label] = 1; 
+
+    for(auto neigh : (*local_vtx.edges)){
+        ID_T n_idx = neigh.target; 
+        LABEL_T n_label; 
+
+        if(local_vtx.is_boundary)
+            n_label = (n_idx < no_local_vtx) ? (*local_vertices)[n_idx].current_label : (*ghost_vertices)[from_local_ghost_to_index(n_idx)].current_label;
+        else 
+            n_label = (*local_vertices)[n_idx].current_label;  
+        
+        if( n_idx > no_local_vtx ){
+            int ghost_pe_id = (*ghost_vertices)[from_local_ghost_to_index(n_idx)].pe_id;
+            if(boundary_neighbor_PEs.find(ghost_pe_id) == boundary_neighbor_PEs.end())
+                boundary_neighbor_PEs.insert(ghost_pe_id); 
+        }
+
+        /* add value to label counter */
+        label_cnt[n_label] += 1; 
+
+        // if new label = maximal 
+        if(max_label_value < label_cnt[n_label]){
+            max_label_value = label_cnt[n_label]; 
+            max_labels.clear(); // resize to 0 ? 
+            max_labels.push_back(n_label); // append new max label 
+        // if new label is the same value another one found previously
+        }else if ( label_cnt[n_label] == max_label_value ){
+            max_labels.push_back(n_label);
+        }
+    } 
+
+    if(max_labels.size() >= 1){
+        int rng_label = std::rand() % max_labels.size();   // pick randomly one label
+        if(max_labels[rng_label] != local_vtx.current_label){
+            set_next_label(max_labels[rng_label], local_vtx.id);  // assign new label to local vtx 
+            if(local_vtx.is_boundary)
+                cm.add_all_to_send(&boundary_neighbor_PEs, from_local_to_global(local_vtx.id), max_labels[rng_label]);
+            updated++;
+        }
+    }
+    
+    return updated;   
 }

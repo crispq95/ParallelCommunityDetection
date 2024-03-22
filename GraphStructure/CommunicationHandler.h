@@ -1,7 +1,7 @@
 #ifndef CommunicationHandler_H
 #define CommunicationHandler_H
 
-#include "DistributedGraph.h"
+// #include "DistributedGraph.h"
 #include "define.h"
 
 class DistributedGraph; 
@@ -28,6 +28,7 @@ class CommunicationHandler{
         ~CommunicationHandler();    
 
         std::vector<std::vector<ID_T>> get_recv_buffer(){ return rcv_buffer; } ;
+        int get_neigh_PEs(){ return no_of_neighbor_PEs; };
 
 
         void init_communications(std::vector<GhostNode> *ghost_vertices);

@@ -12,6 +12,12 @@ class DistributedGraphDPC : public DistributedGraph {
         std::vector<double> quality, density, centrality_index; 
         std::vector<double> second_order_difference;
 
+        std::vector<double> ck_distance_weights, avg_deg; 
+        // std::vector<bool> is_locked_by_degree; 
+
+        std::queue<ID_T> candidate_queue; 
+
+
         void calculate_quality();
         void calculate_density();
         void calculate_centrality_index();
@@ -31,8 +37,8 @@ class DistributedGraphDPC : public DistributedGraph {
 
         /* TO-DO : DCP + LPA */
         void find_cores(); 
-        void get_seeds(); 
-        void run_DPC_LPA_step(); 
+        void get_seeds( int num_seeds, CommunicationHandler* cm ); 
+        // void run_DPC_LPA_step(); 
 };
 
 #endif 
